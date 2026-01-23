@@ -1,8 +1,0 @@
-{
-  "plan": [
-    {
-      "agent": "reference_retrieval_agent",
-      "action": "retrieve_reference_information"
-    }
-  ]
-}

@@ -201,3 +201,8 @@ from typing import List
 def retrieve_agents() -> List[str]:
     """Returns list of available agent names in the system."""
     return ['reference_finder', 'bibtex_generator', 'governance', 'reference_validator']
+
+@tool
+def get_tools() -> List[str]:
+    """Returns list of available tools names in the system."""
+    return ['delegate_to_bibtex_generator','delegate_to_governance', 'delegate_to_reference_finder', 'delegate_to_validator']
