@@ -3,7 +3,7 @@ from src.entities.config import SystemConfig
 config = SystemConfig()
 from src.utils import split_references
 import json
-from src.agents.core_agent.tools import delegate_to_bibtex_generator,delegate_to_governance, delegate_to_reference_finder, delegate_to_validator, save_plan
+from src.agents.core_agent.tools import delegate_to_bibtex_generator,delegate_to_governance, delegate_to_reference_finder, delegate_to_validator, save_plan, retrieve_agents
 
 from src.agents.governance_agent import governance_agent
 # === CORE AGENT ===
@@ -26,7 +26,8 @@ You can only act through the tools provided.
         delegate_to_bibtex_generator,
         delegate_to_validator,
         delegate_to_governance,
-        save_plan
+        save_plan,
+        retrieve_agents
     ],
     llm=config.llm,
     max_iter=config.max_agent_iterations,
@@ -39,11 +40,12 @@ def orchestrate_plan(user_input: str):
         description="""
 You are an orchestrator agent that MUST follow these instructions EXACTLY:
 
-1. Create an execution plan in valid JSON format for the user request.
-2. Convert the plan to a JSON string.
-3. Use the tool 'delegate_to_governance' to validate the plan JSON string.
-4. If the validation fails, revise the plan and repeat step 3 until approved.
-5. Once approved, immediately use the tool 'save_plan' with:
+1. Retrieve which agents you have available to include in the plan using the tool: 'retrieve_agents' (you can only include agents that you have available in the plan).
+2. Create an execution plan in valid JSON format for the user request.
+3. Convert the plan to a JSON string.
+4. Use the tool 'delegate_to_governance' to validate the plan JSON string.
+5. If the validation fails, revise the plan and repeat step 3 until approved.
+6. Once approved, immediately use the tool 'save_plan' with:
    - plan_json: the validated plan JSON string
    - directory: "plans"
 
@@ -75,7 +77,7 @@ USER REQUEST: {user_input}
 """,
         expected_output="A validated and saved execution plan JSON",
         agent=core_orchestrator_agent,
-        tools=[delegate_to_governance, save_plan],
+        tools=[retrieve_agents, delegate_to_governance, save_plan],
     )
 
     crew = Crew(

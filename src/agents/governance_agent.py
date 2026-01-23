@@ -14,9 +14,6 @@ import re
 
 # System policies
 SYSTEM_POLICIES = [
-    "All plans must be valid JSON with 'steps' array",
-    "Each step must have: step number, action, and input fields",
-    "Actions must be one of: find_reference, generate_bibtex, validate_reference",
     "No personal identifiable information (PII) should be present",
     "Plans should be efficient (minimize redundant steps)"
 ]

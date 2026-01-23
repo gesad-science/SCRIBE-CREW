@@ -1,0 +1,12 @@
+{
+  "plan": [
+    {
+      "agent": "reference_finder",
+      "action": "find_reference"
+    },
+    {
+      "agent": "reference_validator",
+      "action": "validate_reference"
+    }
+  ]
+}

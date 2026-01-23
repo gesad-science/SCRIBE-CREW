@@ -194,3 +194,10 @@ def delegate_to_governance(plan_json: str) -> str:
             "status": "error",
             "message": f"Governance validation failed: {e}"
         })
+
+from typing import List
+
+@tool
+def retrieve_agents() -> List[str]:
+    """Returns list of available agent names in the system."""
+    return ['reference_finder', 'bibtex_generator', 'governance', 'reference_validator']
