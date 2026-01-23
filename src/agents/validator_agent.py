@@ -1,8 +1,3 @@
-# src/agents/validator_agent.py
-"""
-Reference Validator Agent - validates reference metadata and BibTeX entries.
-This agent checks consistency and quality of reference data.
-"""
 
 from crewai import Agent, Task
 from crewai.tools import tool

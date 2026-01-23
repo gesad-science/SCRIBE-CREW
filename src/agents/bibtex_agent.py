@@ -1,9 +1,3 @@
-# src/agents/bibtex_agent.py
-"""
-BibTeX Generator Agent - creates or improves BibTeX entries.
-This agent takes paper metadata and produces valid BibTeX entries.
-"""
-
 from crewai import Agent, Task
 from crewai.tools import tool
 from src.tools.external_apis import (

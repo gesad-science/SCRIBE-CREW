@@ -1,9 +1,3 @@
-# src/agents/reference_agent.py
-"""
-Reference Finder Agent - searches for academic papers and extracts metadata.
-This agent uses external APIs to find papers based on reference strings.
-"""
-
 from crewai import Agent, Task
 from crewai.tools import tool
 from src.entities.config import SystemConfig

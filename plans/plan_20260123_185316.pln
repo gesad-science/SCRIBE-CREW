@@ -1,8 +1,0 @@
-{
-  "plan": [
-    {
-      "agent": "reference_finder",
-      "action": "find_reference"
-    }
-  ]
-}
