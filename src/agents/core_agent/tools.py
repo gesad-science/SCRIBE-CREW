@@ -12,7 +12,11 @@ config = SystemConfig()
 from src.agents.reference_agent import reference_finder_agent, create_reference_task
 from src.agents.bibtex_agent import bibtex_generator_agent, create_bibtex_task
 from src.agents.validator_agent import reference_validator_agent, create_validation_task
-from src.agents.governance_agent import governance_agent, create_governance_task
+from src.agents.governance_agent.governance_agent import GovAgent
+
+from src.utils import plan_guardrail
+
+gov_agent = GovAgent()
 
 import json
 from pathlib import Path
@@ -20,7 +24,7 @@ from datetime import datetime
 from typing import Dict
 
 @tool
-def save_plan(plan_json:Dict) -> Path:
+def save_plan(plan_json:Dict) -> str:
     """
     Save a plan JSON to a .pln file.
 
@@ -31,16 +35,10 @@ def save_plan(plan_json:Dict) -> Path:
     """
 
     directory = "plans"
-
-    if isinstance(plan_json, str):
-        plan_data = json.loads(plan_json)
-    elif isinstance(plan_json, Dict):
-        plan_data = plan_json
-    else:
-        raise TypeError("plan_json must be a dict or a JSON string")
-
-    if "plan" not in plan_data or not isinstance(plan_data["plan"], list):
-        raise ValueError("Invalid plan format: missing 'plan' list")
+    try:
+        plan_data = plan_guardrail(plan_json)
+    except Exception as e:
+        return str({"error": e.args})
 
     Path(directory).mkdir(parents=True, exist_ok=True)
 
@@ -50,7 +48,7 @@ def save_plan(plan_json:Dict) -> Path:
     with open(file_path, "w", encoding="utf-8") as f:
         json.dump(plan_data, f, indent=2, ensure_ascii=False)
 
-    return file_path
+    return "OK"
 
 
 
@@ -74,7 +72,6 @@ def delegate_to_reference_finder(reference_text: str) -> str:
         agents=[reference_finder_agent],
         tasks=[task],
         verbose=True,
-        max_rpm=config.max_rpm
     )
     
     try:
@@ -112,7 +109,6 @@ def delegate_to_bibtex_generator(paper_metadata_json: str) -> str:
         agents=[bibtex_generator_agent],
         tasks=[task],
         verbose=True,
-        max_rpm=config.max_rpm
     )
     
     try:
@@ -150,7 +146,6 @@ def delegate_to_validator(reference_data_json: str) -> str:
         agents=[reference_validator_agent],
         tasks=[task],
         verbose=True,
-        max_rpm=config.max_rpm
     )
     
     try:
@@ -163,31 +158,49 @@ def delegate_to_validator(reference_data_json: str) -> str:
         })
 
 @tool
-def delegate_to_governance(plan_json: str) -> str:
+def delegate_to_governance_plan(plan_json:str) -> str:
     """
     Delegate to the Governance Agent to validate a plan.
     
     Args:
-        plan_json: JSON string with execution plan or other information to validate
+        plan: JSON string with execution plan or other information to validate
         
     Returns:
         JSON string with governance validation report
     """
     print(f"\n[CORE] Delegating to Governance Agent...\n")
 
-    plan_json = str(plan_json)
-    
-    task = create_governance_task(plan_json)
-    
-    crew = Crew(
-        agents=[governance_agent],
-        tasks=[task],
-        verbose=True,
-        max_rpm=config.max_rpm
-    )
+    try:
+        plan_json = plan_guardrail(plan_json)
+    except Exception as e:
+        return str({"error": e.args})
     
     try:
-        result = crew.kickoff()
+        result = gov_agent.call_plan_validation_task(plan_json)
+        return str(result)
+    except Exception as e:
+        return json.dumps({
+            "status": "error",
+            "message": f"Governance validation failed: {e}"
+        })
+    
+@tool
+def delegate_to_governance_execution(information: str) -> str:
+    """
+    Delegate to the Governance Agent to validate informations.
+    
+    Args:
+        information: A string with some information to validate
+        
+    Returns:
+        JSON string with governance validation report
+    """
+    print(f"\n[CORE] Delegating to Governance Agent...\n")
+
+    information = str(information)
+    
+    try:
+        result = gov_agent.call_execution_validation_task(information)
         return str(result)
     except Exception as e:
         return json.dumps({

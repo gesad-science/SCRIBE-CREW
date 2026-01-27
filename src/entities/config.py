@@ -23,29 +23,19 @@ class SystemConfig:
         config = self._load_config_from_yaml('config.yaml')
 
         self.llm = None
-        self.otel_sdk_disabled = config['OTEL_SDK_DISABLED']
-        self.crewai_telemetry_disabled = config['CREWAI_TELEMETRY_ENABLED']
 
         self.use_ollama = config['USE_OLLAMA']
-        self.model_url = config['MODEL_URL']
-
         self.model = config['MODEL']
-        self.llm_timeout = config['LLM_TIMEOUT']
-        self.core_agent_timeout = config['CORE_AGENT_TIMEOUT']
-        self.reference_agent_timeout = config['REFERENCE_AGENT_TIMEOUT']
-        self.bibtex_agent_timeout = config['BIBTEX_AGENT_TIMEOUT']
-        self.validator_agent_timeout = config['VALIDATOR_AGENT_TIMEOUT']
-        self.governance_agent_timeout = config['GOVERNANCE_AGENT_TIMEOUT']
-
-        self.max_agent_iterations = config['MAX_AGENT_ITERATIONS']
-        self.max_rpm = config['MAX_RPM']
-        self.enable_memory = config['ENABLE_MEMORY']
+        self.timeout = config['TIMEOUT']
+        self.temperature = config['TEMPERATURE']
+        self.max_retries = config['MAX_RETRIES']
+        self.max_iterations = config['MAX_ITERATIONS']
         self.verbose = config['VERBOSE']
 
-        self.semantic_scholar_user_agent = config['SEMANTIC_SCHOLAR_USER_AGENT']
+        self.avaliable_agents = config['CORE_CONFIG']['AVALIABLE_AGENTS']
+        self.plan_output = config['CORE_CONFIG']['PLAN_OUTPUT']
 
-        self.log_level = config['LOG_LEVEL']
-        self.temperature = config['TEMPERATURE']
+        self.policies = config['GOVERNANCE_CONFIG']['POLICIES']
 
         self._setup_llm()
 
@@ -85,16 +75,16 @@ class SystemConfig:
         if self.use_ollama is True:
             self.llm = LLM(
                 model=f"ollama/{self.model}",
-                base_url=self.model_url,
-                timeout=self.llm_timeout,
+                base_url='http://localhost:11434',
+                timeout=self.timeout,
                 temperature=self.temperature,  
-                max_retries=5,
+                max_retries=self.max_retries,
             )
         else:
             self.llm = LLM(
                 model=self.model,
-                timeout=self.llm_timeout,
+                timeout=self.timeout,
                 temperature=self.temperature,  
-                max_retries=5,
+                max_retries=self.max_retries,
                 api_key=self._load_key()
             )

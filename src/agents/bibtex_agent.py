@@ -1,4 +1,4 @@
-from crewai import Agent, Task
+from crewai import Agent, Task, LLM
 from crewai.tools import tool
 from src.tools.external_apis import (
     fetch_bibtex_by_doi, 
@@ -9,7 +9,6 @@ from src.tools.external_apis import (
 import json
 from src.entities.config import SystemConfig
 config = SystemConfig()
-
 # === TOOLS ===
 
 @tool
@@ -118,7 +117,7 @@ You ALWAYS ensure BibTeX entries follow proper formatting with:
         validate_bibtex
     ],
     llm=config.llm,
-    max_iter=config.max_agent_iterations,
+    max_iter=3,
     verbose=True,
     allow_delegation=False
 )

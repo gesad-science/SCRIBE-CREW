@@ -133,3 +133,18 @@ def normalize_json(data: Any) -> Any:
     
     else:
         return data
+    
+def plan_guardrail(plan):
+    if isinstance(plan, str):
+        plan_data = json.loads(plan)
+    elif isinstance(plan, Dict):
+        plan_data = plan
+    elif isinstance(plan, List):
+        plan_data = {"plan":plan}
+    else:
+        raise TypeError("plan must be in a valid format")
+    
+    if "plan" not in plan_data or not isinstance(plan_data["plan"], list):
+        raise ValueError("Invalid plan format: missing 'plan' list")
+
+    return plan_data

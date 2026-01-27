@@ -1,11 +1,13 @@
-from crewai import Agent, Task
+from crewai import Agent, Task, LLM
 from crewai.tools import tool
 from src.entities.config import SystemConfig
-config = SystemConfig()
 from src.tools.external_apis import search_semantic_scholar
 from src.utils import guess_title_from_reference, extract_doi, extract_arxiv_id
 import json
 from src.utils import normalize_json
+
+from src.entities.config import SystemConfig
+config = SystemConfig()
 
 # === TOOLS ===
 
@@ -93,7 +95,7 @@ by your tools. If a paper cannot be found, you report that clearly. And you only
 """,
     tools=[search_paper_by_title, extract_identifiers_from_reference, guess_title_tool],
     llm=config.llm,
-    max_iter=config.max_agent_iterations,
+    max_iter=3,
     verbose=True,
     allow_delegation=False
 )

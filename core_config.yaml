@@ -1,7 +1,0 @@
-AVALIABLE_AGENTS:
-  - reference_finder
-  - bibtex_generator
-  - governance
-  - reference_validator
-
-PLAN_OUTPUT: plans

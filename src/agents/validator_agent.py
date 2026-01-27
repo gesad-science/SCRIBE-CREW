@@ -1,10 +1,14 @@
 
-from crewai import Agent, Task
+from crewai import Agent, Task, LLM
 from crewai.tools import tool
 from src.entities.config import SystemConfig
-config = SystemConfig()
 import json
 import re
+
+from src.entities.config import SystemConfig
+
+config = SystemConfig()
+
 
 # === TOOLS ===
 
@@ -199,7 +203,7 @@ clear, actionable validation reports that help improve data quality.
         cross_check_metadata_bibtex
     ],
     llm=config.llm,
-    max_iter=config.max_agent_iterations,
+    max_iter=5,
     verbose=True,
     allow_delegation=False
 )

@@ -1,24 +1,9 @@
-# src/agents/governance_agent.py
-"""
-Governance Agent - validates plans and enforces system policies.
-This agent ensures that execution plans are well-formed and compliant.
-"""
-
-from crewai import Agent, Task
 from crewai.tools import tool
 from src.entities.config import SystemConfig
-config = SystemConfig()
+import json 
+
 from src.utils import safe_json_parse
-import json
 import re
-
-# System policies
-SYSTEM_POLICIES = [
-    "No personal identifiable information (PII) should be present",
-    "Plans should be efficient (minimize redundant steps)"
-]
-
-# === TOOLS ===
 
 @tool
 def get_system_policies() -> str:
@@ -30,9 +15,11 @@ def get_system_policies() -> str:
     """
     print(f"[TOOL] Retrieving system policies...")
     
+    config = SystemConfig()
+
     result = {
-        "policies": SYSTEM_POLICIES,
-        "policy_count": len(SYSTEM_POLICIES)
+        "policies": config.policies,
+        "policy_count": len(config.policies)
     }
     
     return json.dumps(result, indent=2)
@@ -221,78 +208,3 @@ def check_plan_efficiency(plan_json: str) -> str:
     }
     
     return json.dumps(result, indent=2)
-
-# === AGENT ===
-
-governance_agent = Agent(
-    role="System Governance Controller",
-    goal="Ensure all plans comply with policies and are well-structured",
-    backstory="""
-You are the system's policy enforcement officer. You validate that all 
-execution plans follow the rules, are properly structured, contain no 
-sensitive information, and are efficient.
-
-You provide clear, constructive feedback when plans need improvement.
-You help maintain system integrity and data quality.
-""",
-    tools=[
-        get_system_policies,
-        validate_plan_structure,
-        detect_pii,
-        check_plan_efficiency
-    ],
-    llm=config.llm,
-    max_iter=config.max_agent_iterations,
-    verbose=True,
-    allow_delegation=False
-)
-
-# === TASK BUILDER ===
-
-def create_governance_task(plan_or_data: str) -> Task:
-    """
-    Create a task for validating a plan or execution data.
-    
-    Args:
-        plan_or_data: Plan JSON or execution data to validate
-        
-    Returns:
-        CrewAI Task object
-    """
-    return Task(
-        description=f"""
-You received content that needs governance validation:
-
-CONTENT:
-{plan_or_data}
-
-Your job is to thoroughly validate this content against system policies.
-
-VALIDATION STEPS:
-1. Use 'get_system_policies' to retrieve current policies
-2. Use 'validate_plan_structure' to check structure
-3. Use 'detect_pii' to scan for sensitive information
-4. Use 'check_plan_efficiency' to analyze efficiency
-
-PROVIDE A COMPREHENSIVE REPORT:
-- Whether the content is approved or rejected
-- List of policy violations (if any)
-- List of structural issues (if any)
-- PII detection results
-- Efficiency recommendations
-
-OUTPUT FORMAT (JSON):
-{{
-  "approved": true/false,
-  "status": "approved" or "rejected" or "needs_revision",
-  "policy_violations": ["violation1", "violation2"],
-  "structural_issues": ["issue1", "issue2"],
-  "pii_detected": true/false,
-  "efficiency_score": "high" or "medium" or "low",
-  "recommendations": ["rec1", "rec2"],
-  "summary": "brief summary of validation"
-}}
-""",
-        agent=governance_agent,
-        expected_output="A comprehensive governance validation report in JSON format"
-    )
