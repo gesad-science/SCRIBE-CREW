@@ -206,39 +206,29 @@ python -m test.py
 
 ### LLM Settings 
 
-> USE_OLLAMA 
-enables or disables the use of the Ollama backend for model execution.
+`USE_OLLAMA` - enables or disables the use of the Ollama backend for model execution.
 
-> MODEL 
-specifies the language model to be used by the system.
+`MODEL` - specifies the language model to be used by the system.
 
->TIMEOUT
-defines the maximum time (in seconds) allowed for a single model request before it is aborted.
+`TIMEOUT` - defines the maximum time (in seconds) allowed for a single model request before it is aborted.
 
-> TEMPERATURE 
-controls the randomness of the model’s responses. Lower values make outputs more deterministic, while higher values increase creativity.
+`TEMPERATURE` - controls the randomness of the model’s responses. Lower values make outputs more deterministic, while higher values increase creativity.
 
-> MAX_RETRIES
-sets how many times the system will retry a failed model request.
+`MAX_RETRIES` - sets how many times the system will retry a failed model request.
 
-> VERBOSE
-enables detailed logging, useful for debugging and understanding internal execution flow.
+`VERBOSE` - enables detailed logging, useful for debugging and understanding internal execution flow.
 
 ### Core Configuration
 
-> CORE_CONFIG
-groups settings related to the internal agent system.
+`CORE_CONFIG` - groups settings related to the internal agent system.
 
-> AVALIABLE_AGENTS
-defines which agents are enabled and can participate in the execution pipeline. The order may matter depending on the orchestration logic.
+`AVALIABLE_AGENTS` - defines which agents are enabled and can participate in the execution pipeline. The order may matter depending on the orchestration logic.
 
-> PLAN_OUTPUT
-defines the format or style of the generated plans produced by the planning agent.
+`PLAN_OUTPUT` - defines the format or style of the generated plans produced by the planning agent.
 
 ### Governance Configuration
 
-> POLICIES
-the system policies that governance agent will use to validate information.
+`POLICIES` - the system policies that governance agent will use to validate information.
 
 ### Model Recommendations
 
