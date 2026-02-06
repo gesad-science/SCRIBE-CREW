@@ -1,0 +1,201 @@
+Event 0
+  agent: Core Orchestrator Agent
+  steps:
+    -
+      tool: retrieve_agents
+      input:
+      output: ['reference_finder', 'bibtex_generator', 'governance', 'reference_validator'] 🚀 Crew: crew 📋
+    -
+      tool: save_plan
+      input:
+        plan_json:
+          plan:
+            -
+              agent: reference_finder
+              action: find the paper 'attention is all you need'
+            -
+              agent: bibtex_generator
+              action: generate bibtex for the paper
+            -
+              agent: governance
+              action: validate the plan
+      output: OK [CORE] Delegating to Governance Agent... 🚀 Crew: crew 📋
+  final_answer: None
+
+Event 1
+  agent: System Governance Controller
+  steps:
+    -
+      tool: get_system_policies
+      input:
+      output: { "policies": [ "No personal identifiable information (PII) should be present", "Plans should be efficient (minimize redundant steps)" ], "policy_count": 2 } I encountered an error while trying to use the tool. This was the error: Arguments validation failed: 1 validation error for Validate_Plan_Structure plan_json Input should be a valid string [type=string_type, input_value={'plan': [{'agent': 'refe...: 'validate the plan'}]}, input_type=dict] For further information visit https://errors.pydantic.dev/2.11/v/string_type. Tool validate_plan_structure accepts these inputs: Tool Name: validate_plan_structure Tool Arguments: {'plan_json': {'description': None, 'type': 'str'}}
+    -
+      tool: validate_plan_structure Tool Error Tool Usage Failed Name: validate_plan_structure Error: Arguments validation failed: 1 validation error for Validate_Plan_Structure plan_json Input should be a valid string [type=string_type, input_value={'plan': [{'agent': 'refe...: 'validate the plan'}]}, input_type=dict] For further information visit https://errors.pydantic.dev/2.11/v/string_type Tool Args: 🚀 Crew: crew 📋
+      input:
+        plan_json:
+          plan:
+            -
+              agent: reference_finder
+              action: find the paper 'attention is all you need'
+            -
+              agent: bibtex_generator
+              action: generate bibtex for the paper
+            -
+              agent: governance
+              action: validate the plan
+      output: I encountered an error while trying to use the tool. This was the error: Arguments validation failed: 1 validation error for Validate_Plan_Structure plan_json Input should be a valid string [type=string_type, input_value={'plan': [{'agent': 'refe...: 'validate the plan'}]}, input_type=dict] For further information visit https://errors.pydantic.dev/2.11/v/string_type. Tool validate_plan_structure accepts these inputs: Tool Name: validate_plan_structure Tool Arguments: {'plan_json': {'description': None, 'type': 'str'}}
+    -
+      tool: validate_plan_structure
+      input:
+        plan_json:
+          plan:
+            -
+              agent: reference_finder
+              action: find the paper 'attention is all you need'
+            -
+              agent: bibtex_generator
+              action: generate bibtex for the paper
+            -
+              agent: governance
+              action: validate the plan
+      output: { "is_valid": true, "issues": [], "warnings": [], "step_count": 3 } [TOOL] Scanning for PII... 🚀 Crew: crew 📋
+    -
+      tool: detect_pii
+      input:
+        text:
+          plan:
+            -
+              agent: reference_finder
+              action: find the paper 'attention is all you need'
+            -
+              agent: bibtex_generator
+              action: generate bibtex for the paper
+            -
+              agent: governance
+              action: validate the plan
+      output: { "pii_found": false, "detected_types": [], "severity": "none" } You ONLY have access to the following tools, and should NEVER make up tools that are not listed here: Tool Name: get_system_policies Tool Arguments: {}
+    -
+      tool: check_plan_efficiency
+      input:
+        plan_json:
+          plan:
+            -
+              agent: reference_finder
+              action: find the paper 'attention is all you need'
+            -
+              agent: bibtex_generator
+              action: generate bibtex for the paper
+            -
+              agent: governance
+              action: validate the plan
+      output: {"is_efficient": false, "issues": ["Cannot analyze invalid plan"]} 🚀 Crew: crew 📋
+    -
+      tool: delegate_to_governance_plan ✅ Crew: crew 📋
+      input:
+        plan_json:
+          plan:
+            -
+              agent: reference_finder
+              action: find the paper 'attention is all you need'
+            -
+              agent: bibtex_generator
+              action: generate bibtex for the paper
+            -
+              agent: governance
+              action: validate the plan
+      output: { "approved": true, "status": "approved", "policy_violations": [], "structural_issues": [], "pii_detected": false, "efficiency_score": "high", "recommendations": ["Ensure future plans are concise and avoid redundant steps."], "summary": "The plan structure is valid, contains no PII, and is efficient. It complies with all current system policies, and therefore, it is approved." } You ONLY have access to the following tools, and should NEVER make up tools that are not listed here: Tool Name: retrieve_agents Tool Arguments: {}
+    -
+      tool: save_plan ✅ Crew: crew 📋
+      input:
+        plan_json:
+          plan:
+            -
+              agent: reference_finder
+              action: find the paper 'attention is all you need'
+            -
+              agent: bibtex_generator
+              action: generate bibtex for the paper
+            -
+              agent: governance
+              action: validate the plan
+      output: OK ✅
+  final_answer: Agent: Core Orchestrator Agent Final Answer: the final answer to the original input question Task Completion Task Completed Name: f1133f82-f7b6-406a-89e8-3705dd28a37a Agent: Core Orchestrator Agent Tool Args: Crew Completion Crew Execution Completed Name: crew ID: c548ade0-bcdf-4eed-a763-4643ecf7f83b Tool Args: Final Output: the final answer to the original input question Tracing Status Info: Tracing is disabled. To enable tracing, do any one of these: Set tracing=True in your Crew/Flow code Set CREWAI_TRACING_ENABLED=true in your project's .env file Run: crewai traces enable Crew Execution Started Crew Execution Started Name: crew ID: 17f84d18-f913-4d42-bd0b-8811af42cb4a Tool Args: 🚀 Crew: crew 📋
+
+Event 2
+  agent: Core Orchestrator Agent
+  steps:
+    -
+      tool: get_tools 🚀 Crew: crew 📋
+      input:
+      output: ['delegate_to_bibtex_generator', 'delegate_to_governance', 'delegate_to_reference_finder', 'delegate_to_validator'] 🚀 Crew: crew 📋
+    -
+      tool: get_tools
+      input:
+      output: I tried reusing the same input, I must stop using this action input. I'll try something else instead. [CORE] Delegating to Reference Finder Agent... [CORE] Reference: attention is all you need... 🚀 Crew: crew 📋
+  final_answer: None
+
+Event 3
+  agent: Academic Reference Finder
+  steps:
+    -
+      tool: extract_identifiers_from_reference
+      input:
+        reference_text: attention is all you need
+      output: { "doi": null, "arxiv": null, "has_doi": false, "has_arxiv": false } [TOOL] Guessing title from reference... 🚀 Crew: crew 📋
+    -
+      tool: guess_title_tool
+      input:
+        reference_text: attention is all you need
+      output: attention is all you need [TOOL] Searching for paper: attention is all you need... Normalized title: attention is all you need Maximum iterations reached. Requesting final answer. 🚀 Crew: crew 📋
+    -
+      tool: search_paper_by_title
+      input:
+        title: attention is all you need
+      output: { "status": "success", "papers": [ { "paperId": "204e3073870fae3d05bcbc2f6a8e263d9b72e776", "externalIds": { "DBLP": "journals/corr/VaswaniSPUJGKP17", "MAG": "2963403868", "ArXiv": "1706.03762", "CorpusId": 13756489 }, "url": "https://www.semanticscholar.org/paper/204e3073870fae3d05bcbc2f6a8e263d9b72e776", "title": "Attention is All you Need", "year": 2017, "citationStyles": { "bibtex": "@Article{Vaswani2017AttentionIA,\n author = {Ashish Vaswani and Noam Shazeer and Niki Parmar and Jakob Uszkoreit and Llion Jones and Aidan N. Gomez and Lukasz Kaiser and I. Polosukhin},\n booktitle = {Neural Information Processing Systems},\n pages = {5998-6008},\n title = {Attention is All you Need},\n year = {2017}\n}\n" }, "authors": [ { "authorId": "40348417", "name": "Ashish Vaswani" }, { "authorId": "1846258", "name": "Noam Shazeer" }, { "authorId": "3877127", "name": "Niki Parmar" }, { "authorId": "39328010", "name": "Jakob Uszkoreit" }, { "authorId": "145024664", "name": "Llion Jones" }, { "authorId": "19177000", "name": "Aidan N. Gomez" }, { "authorId": "40527594", "name": "Lukasz Kaiser" }, { "authorId": "3443442", "name": "I. Polosukhin" } ] } ] } You ONLY have access to the following tools, and should NEVER make up tools that are not listed here: Tool Name: search_paper_by_title Tool Arguments: {'title': {'description': None, 'type': 'str'}}
+    -
+      tool: delegate_to_reference_finder Tracing Status Info: Tracing is disabled. To enable tracing, do any one of these: Set tracing=True in your Crew/Flow code Set CREWAI_TRACING_ENABLED=true in your project's .env file Run: crewai traces enable ✅ Crew: crew 📋
+      input:
+        reference_text: attention is all you need
+      output: { "original_reference": "attention is all you need", "status": "found", "paper": { "title": "Attention is All you Need", "authors": [ "Ashish Vaswani", "Noam Shazeer", "Niki Parmar", "Jakob Uszkoreit", "Llion Jones", "Aidan N. Gomez", "Lukasz Kaiser", "I. Polosukhin" ], "year": 2017, "url": "https://www.semanticscholar.org/paper/204e3073870fae3d05bcbc2f6a8e263d9b72e776", "doi": null, "arxiv": "1706.03762", "bibtex": "@Article{Vaswani2017AttentionIA,\n author = {Ashish Vaswani and Noam Shazeer and Niki Parmar and Jakob Uszkoreit and Llion Jones and Aidan N. Gomez and Lukasz Kaiser and I. Polosukhin},\n booktitle = {Neural Information Processing Systems},\n pages = {5998-6008},\n title = {Attention is All you Need},\n year = {2017}\n}" } } You ONLY have access to the following tools, and should NEVER make up tools that are not listed here: Tool Name: get_tools Tool Arguments: {}
+  final_answer: Agent: Academic Reference Finder Final Answer: { "original_reference": "attention is all you need", "status": "found", "paper": { "title": "Attention is All you Need", "authors": [ "Ashish Vaswani", "Noam Shazeer", "Niki Parmar", "Jakob Uszkoreit", "Llion Jones", "Aidan N. Gomez", "Lukasz Kaiser", "I. Polosukhin" ], "year": 2017, "url": "https://www.semanticscholar.org/paper/204e3073870fae3d05bcbc2f6a8e263d9b72e776", "doi": null, "arxiv": "1706.03762", "bibtex": "@Article{Vaswani2017AttentionIA,\n author = {Ashish Vaswani and Noam Shazeer and Niki Parmar and Jakob Uszkoreit and Llion Jones and Aidan N. Gomez and Lukasz Kaiser and I. Polosukhin},\n booktitle = {Neural Information Processing Systems},\n pages = {5998-6008},\n title = {Attention is All you Need},\n year = {2017}\n}" } } Task Completion Task Completed Name: 57b4d700-af5f-4877-b9a5-0c0a53062d79 Agent: Academic Reference Finder Tool Args: Crew Completion Crew Execution Completed Name: crew ID: 32d13f1c-25f1-402c-9f05-c4ca7294cf57 Tool Args: Final Output: { "original_reference": "attention is all you need", "status": "found", "paper": { "title": "Attention is All you Need", "authors": [ "Ashish Vaswani", "Noam Shazeer", "Niki Parmar", "Jakob Uszkoreit", "Llion Jones", "Aidan N. Gomez", "Lukasz Kaiser", "I. Polosukhin" ], "year": 2017, "url": "https://www.semanticscholar.org/paper/204e3073870fae3d05bcbc2f6a8e263d9b72e776", "doi": null, "arxiv": "1706.03762", "bibtex": "@Article{Vaswani2017AttentionIA,\n author = {Ashish Vaswani and Noam Shazeer and Niki Parmar and Jakob Uszkoreit and Llion Jones and Aidan N. Gomez and Lukasz Kaiser and I. Polosukhin},\n booktitle = {Neural Information Processing Systems},\n pages = {5998-6008},\n title = {Attention is All you Need},\n year = {2017}\n}" } } 🔧 Agent Tool Execution Agent: Core Orchestrator Agent Thought: Thought: I will now delegate to the Reference Finder Agent to search for the paper "attention is all you need" to obtain its metadata.
+
+Event 4
+  agent: BibTeX Entry Generator
+  steps:
+    -
+      tool: fetch_bibtex_from_arxiv
+      input:
+        arxiv_id: 1706.03762
+      output: @misc{Vaswani_attention_2017, author = {Vaswani, Ashish and Shazeer, Noam and Parmar, Niki and Uszkoreit, Jakob and Jones, Llion and Gomez, Aidan N. and Kaiser, Lukasz and Polosukhin, Illia}, copyright = {arXiv.org perpetual, non-exclusive license}, keywords = {Computation and Language (cs.CL), Machine Learning (cs.LG), FOS: Computer and information sciences, FOS: Computer and information sciences}, publisher = {arXiv}, title = {{Attention} {Is} {All} {You} {Need}}, url = {https://arxiv.org/abs/1706.03762}, year = {2017} } [TOOL] Validating BibTeX format... 🚀 Crew: crew 📋
+    -
+      tool: validate_bibtex
+      input:
+        bibtex_str: @misc{Vaswani_attention_2017,
+ author = {Vaswani, Ashish and Shazeer, Noam and Parmar, Niki and Uszkoreit, Jakob and Jones, Llion and Gomez, Aidan N. and Kaiser, Lukasz and Polosukhin, Illia},
+ copyright = {arXiv.org perpetual, non-exclusive license},
+ keywords = {Computation and Language (cs.CL), Machine Learning (cs.LG), FOS: Computer and information sciences, FOS: Computer and information sciences},
+ publisher = {arXiv},
+ title = {{Attention} {Is} {All} {You} {Need}},
+ url = {https://arxiv.org/abs/1706.03762},
+ year = {2017}
+}
+      output: { "is_valid": true, "message": "Valid BibTeX format" } 🚀 Crew: crew 📋
+    -
+      tool: delegate_to_bibtex_generator ✅ Crew: crew 📋
+      input:
+        paper_metadata_json:
+          title: Attention is All you Need
+          authors:
+            - Ashish Vaswani
+            - Noam Shazeer
+            - Niki Parmar
+            - Jakob Uszkoreit
+            - Llion Jones
+            - Aidan N. Gomez
+            - Lukasz Kaiser
+            - I. Polosukhin
+          year: 2017
+          url: https://www.semanticscholar.org/paper/204e3073870fae3d05bcbc2f6a8e263d9b72e776
+          arxiv: 1706.03762
+      output: { "bibtex": "@misc{Vaswani_attention_2017,\n author = {Vaswani, Ashish and Shazeer, Noam and Parmar, Niki and Uszkoreit, Jakob and Jones, Llion and Gomez, Aidan N. and Kaiser, Lukasz and Polosukhin, Illia},\n title = {Attention Is All You Need},\n year = {2017},\n url = {https://arxiv.org/abs/1706.03762}\n}", "source": "arxiv", "is_valid": true, "citation_key": "Vaswani_attention_2017" } Tracing Status Info: Tracing is disabled. To enable tracing, do any one of these: Set tracing=True in your Crew/Flow code Set CREWAI_TRACING_ENABLED=true in your project's .env file Run: crewai traces enable ✅ Crew: crew 📋
+  final_answer: Agent: Core Orchestrator Agent Final Answer: @misc{Vaswani_attention_2017, author = {Vaswani, Ashish and Shazeer, Noam and Parmar, Niki and Uszkoreit, Jakob and Jones, Llion and Gomez, Aidan N. and Kaiser, Lukasz and Polosukhin, Illia}, title = {Attention Is All You Need}, year = {2017}, url = {https://arxiv.org/abs/1706.03762} } Task Completion Task Completed Name: 329e65bf-12f4-47e4-a4b7-0c83ec83973e Agent: Core Orchestrator Agent Tool Args: @misc{Vaswani_attention_2017, author = {Vaswani, Ashish and Shazeer, Noam and Parmar, Niki and Uszkoreit, Jakob and Jones, Llion and Gomez, Aidan N. and Kaiser, Lukasz and Polosukhin, Illia}, title = {Attention Is All You Need}, year = {2017}, url = {https://arxiv.org/abs/1706.03762} } Crew Completion Crew Execution Completed Name: crew ID: 17f84d18-f913-4d42-bd0b-8811af42cb4a Tool Args: Final Output: @misc{Vaswani_attention_2017, author = {Vaswani, Ashish and Shazeer, Noam and Parmar, Niki and Uszkoreit, Jakob and Jones, Llion and Gomez, Aidan N. and Kaiser, Lukasz and Polosukhin, Illia}, title = {Attention Is All You Need}, year = {2017}, url = {https://arxiv.org/abs/1706.03762} } Tracing Status Info: Tracing is disabled. To enable tracing, do any one of these: Set tracing=True in your Crew/Flow code Set CREWAI_TRACING_ENABLED=true in your project's .env file Run: crewai traces enable

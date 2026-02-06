@@ -31,6 +31,7 @@ class SystemConfig:
         self.max_retries = config['MAX_RETRIES']
         self.max_iterations = config['MAX_ITERATIONS']
         self.verbose = config['VERBOSE']
+        self.output_log_file = config.get('LOG_OUTPUT', False)
 
         self.avaliable_agents = config['CORE_CONFIG']['AVALIABLE_AGENTS']
         self.plan_output = config['CORE_CONFIG']['PLAN_OUTPUT']
@@ -47,7 +48,7 @@ class SystemConfig:
     def _load_config_from_yaml(self, file_path: Path) -> dict:
         with open(file_path, "r") as file:
             return yaml.safe_load(file)
-        
+
     def _validate_ollama_connection(self):
         """Test if Ollama is responding"""
         try:
@@ -64,27 +65,27 @@ class SystemConfig:
             )
         except Exception as e:
             raise RuntimeError(f"Ollama connection error: {e}")
-        
+
 
     def _load_key(self):
         load_dotenv()
         return os.environ.get("API_KEY")
 
-        
+
     def _setup_llm(self):
         if self.use_ollama is True:
             self.llm = LLM(
                 model=f"ollama/{self.model}",
                 base_url='http://localhost:11434',
                 timeout=self.timeout,
-                temperature=self.temperature,  
+                temperature=self.temperature,
                 max_retries=self.max_retries,
             )
         else:
             self.llm = LLM(
                 model=self.model,
                 timeout=self.timeout,
-                temperature=self.temperature,  
+                temperature=self.temperature,
                 max_retries=self.max_retries,
                 api_key=self._load_key()
             )

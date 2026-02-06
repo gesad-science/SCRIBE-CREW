@@ -17,7 +17,7 @@ class CoreAgent:
         self.llm = config.llm
         self.verbose = config.verbose
         self.max_iterations = config.max_iterations
-
+        self.output_log_file = config.output_log_file
         self.core_orchestrator_agent = None
 
         self._setup_agent()
@@ -100,6 +100,7 @@ class CoreAgent:
             agents=[self.core_orchestrator_agent],
             tasks=[plan_and_validate_task],
             verbose=self.verbose,
+            output_log_file=self.output_log_file,
         )
 
         result = crew.kickoff()
