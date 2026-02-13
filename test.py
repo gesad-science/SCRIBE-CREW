@@ -11,11 +11,11 @@ sys.stderr = Tee(sys.__stderr__, log_file)
 
 core = CoreAgent()
 
-#user_input = input("USER INPUT: ")
+user_input = input("USER INPUT: ")
 
-#print(core.orchestrate(user_input=user_input))
+print(core.orchestrate(user_input=user_input))
 
-run_tests_and_save_results(core=core)
+#run_tests_and_save_results(core=core)
 
 def restore_terminal_output():
     if sys.stdout != sys.__stdout__:

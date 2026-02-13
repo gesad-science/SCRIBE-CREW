@@ -2,7 +2,15 @@ from crewai import Agent, Task, Crew, Process
 from src.entities.config import SystemConfig
 from src.utils import split_references
 import json
-from src.agents.core_agent.tools import delegate_to_bibtex_generator,delegate_to_governance_execution, delegate_to_governance_plan, delegate_to_reference_finder, delegate_to_validator, save_plan, retrieve_agents, get_tools
+from src.agents.core_agent.tools import (delegate_to_bibtex_generator,
+                                         delegate_to_governance_execution, 
+                                         delegate_to_governance_plan, 
+                                         delegate_to_reference_finder, 
+                                         delegate_to_validator, 
+                                         save_plan, 
+                                         retrieve_agents, 
+                                         get_tools, 
+                                         save_pdf_to_system_memory)
 
 
 from crewai import Agent
@@ -43,7 +51,8 @@ class CoreAgent:
                 delegate_to_governance_plan,
                 save_plan,
                 retrieve_agents,
-                get_tools
+                get_tools,
+                save_pdf_to_system_memory
             ],
             llm=self.llm,
             max_iter=self.max_iterations,
@@ -56,11 +65,12 @@ class CoreAgent:
             description="""
             You are an orchestrator agent that MUST follow these instructions EXACTLY IN ORDER:
 
-            1. Retrieve which agents you have available to include in the plan using the tool: 'retrieve_agents' (you can only include agents that you have available in the plan).
-            2. Create an execution plan in valid JSON format for the user request.
-            3. Use the tool 'delegate_to_governance' to validate the plan JSON string.
-            4. If the validation fails, revise the plan and repeat step 3 until approved.
-            5. Once approved, immediately use the tool 'save_plan' with:
+            1. You should check if the user's request contains any directory paths that they want to use in the request. If it does, use tool 'save_pdf_to_system_memory', passing the path to save it in the system memory.
+            2. Retrieve which agents you have available to include in the plan using the tool: 'retrieve_agents' (you can only include agents that you have available in the plan).
+            3. Create an execution plan in valid JSON format for the user request.
+            4. Use the tool 'delegate_to_governance' to validate the plan JSON string.
+            5. If the validation fails, revise the plan and repeat step 3 until approved.
+            6. Once approved, immediately use the tool 'save_plan' with:
 
             CRITICAL RULES:
             - Return a final answer ONLY after execute all steps defined above
@@ -93,7 +103,7 @@ class CoreAgent:
             """,
             expected_output="A validated and saved execution plan JSON",
             agent=self.core_orchestrator_agent,
-            tools=[retrieve_agents, delegate_to_governance_plan, save_plan],
+            tools=[retrieve_agents, delegate_to_governance_plan, save_plan, save_pdf_to_system_memory],
         )
 
         crew = Crew(

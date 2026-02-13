@@ -2,6 +2,14 @@
 
 # === TOOLS FOR CORE AGENT ===
 
+from langchain_community.document_loaders import PyPDFLoader
+from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_qdrant import QdrantVectorStore
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from qdrant_client import QdrantClient
+
+import os
+
 from crewai.tools import tool
 from crewai import Crew, Task
 import json
@@ -123,7 +131,7 @@ def delegate_to_bibtex_generator(paper_metadata_json: str) -> str:
 @tool
 def delegate_to_validator(reference_data_json: str) -> str:
     """
-    Delegate to the Reference Validator Agent to validate data quality.
+    Delegate to the Reference Validator Agent to validate data quality. It can validate any informtion of the reference, as the bibtex, authors, year.
     
     Args:
         reference_data_json: JSON string with reference data to validate
@@ -219,3 +227,41 @@ def retrieve_agents() -> List[str]:
 def get_tools() -> List[str]:
     """Returns list of available tools names in the system."""
     return ['delegate_to_bibtex_generator','delegate_to_governance', 'delegate_to_reference_finder', 'delegate_to_validator']
+
+SYSTEM_COLLECTION = "system_memory"
+
+qdrant_client = QdrantClient(host="localhost", port=6333)
+embeddings = HuggingFaceEmbeddings(
+    model_name="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+)
+
+@tool
+def save_pdf_to_system_memory(pdf_path: str) -> str:
+    """
+    Extract text from a PDF and persist into system Qdrant collection.
+    """
+
+    if not os.path.exists(pdf_path):
+        return json.dumps({"status": "error", "message": "File not found"})
+
+    loader = PyPDFLoader(pdf_path)
+    documents = loader.load()
+
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=1000,
+        chunk_overlap=200
+    )
+    chunks = splitter.split_documents(documents)
+
+    QdrantVectorStore.from_documents(
+        documents=chunks,
+        embedding=embeddings,
+        url="http://localhost:6333",
+        collection_name=SYSTEM_COLLECTION
+    )
+
+    return json.dumps({
+        "status": "stored",
+        "collection": SYSTEM_COLLECTION,
+        "chunks_indexed": len(chunks)
+    })
