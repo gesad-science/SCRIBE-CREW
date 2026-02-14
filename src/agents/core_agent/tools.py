@@ -20,6 +20,7 @@ config = SystemConfig()
 from src.agents.reference_agent import reference_finder_agent, create_reference_task
 from src.agents.bibtex_agent import bibtex_generator_agent, create_bibtex_task
 from src.agents.validator_agent import reference_validator_agent, create_validation_task
+from src.agents.rag_agent import rag_agent, create_rag_task
 from src.agents.governance_agent.governance_agent import GovAgent
 
 from src.utils import plan_guardrail
@@ -215,18 +216,20 @@ def delegate_to_governance_execution(information: str) -> str:
             "status": "error",
             "message": f"Governance validation failed: {e}"
         })
+    
+
 
 from typing import List
 
 @tool
 def retrieve_agents() -> List[str]:
     """Returns list of available agent names in the system."""
-    return ['reference_finder', 'bibtex_generator', 'governance', 'reference_validator']
+    return ['reference_finder', 'bibtex_generator', 'governance', 'reference_validator', 'rag_agent']
 
 @tool
 def get_tools() -> List[str]:
     """Returns list of available tools names in the system."""
-    return ['delegate_to_bibtex_generator','delegate_to_governance', 'delegate_to_reference_finder', 'delegate_to_validator']
+    return ['delegate_to_bibtex_generator','delegate_to_governance', 'delegate_to_reference_finder', 'delegate_to_validator', 'delegate_to_rag_agent']
 
 SYSTEM_COLLECTION = "system_memory"
 
@@ -265,3 +268,35 @@ def save_pdf_to_system_memory(pdf_path: str) -> str:
         "collection": SYSTEM_COLLECTION,
         "chunks_indexed": len(chunks)
     })
+
+@tool
+def delegate_to_rag_agent(query: str, paper_identifier:str) -> str:
+    """
+    Delegate to the Rag Agent to search for some information inside some paper.
+    
+    Args:
+        query: a string with the data that you want from the paper.
+        paper_identifier: a string with the name, or some other identifier of the paper
+        
+    Returns:
+        JSON string with paper metadata
+    """
+    print(f"\n[CORE] Delegating to Rag agent...")
+    print(f"[CORE] Reference: {query[:100]}...\n")
+    
+    task = create_rag_task(user_query=query, paper_identifier=paper_identifier)
+    
+    crew = Crew(
+        agents=[rag_agent],
+        tasks=[task],
+        verbose=True,
+    )
+    
+    try:
+        result = crew.kickoff()
+        return str(result)
+    except Exception as e:
+        return json.dumps({
+            "status": "error",
+            "message": f"Reference Finder failed: {e}"
+        })

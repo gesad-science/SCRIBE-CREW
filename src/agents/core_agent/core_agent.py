@@ -10,7 +10,8 @@ from src.agents.core_agent.tools import (delegate_to_bibtex_generator,
                                          save_plan, 
                                          retrieve_agents, 
                                          get_tools, 
-                                         save_pdf_to_system_memory)
+                                         save_pdf_to_system_memory,
+                                         delegate_to_rag_agent)
 
 
 from crewai import Agent
@@ -52,7 +53,8 @@ class CoreAgent:
                 save_plan,
                 retrieve_agents,
                 get_tools,
-                save_pdf_to_system_memory
+                save_pdf_to_system_memory,
+                delegate_to_rag_agent
             ],
             llm=self.llm,
             max_iter=self.max_iterations,
@@ -68,9 +70,10 @@ class CoreAgent:
             1. You should check if the user's request contains any directory paths that they want to use in the request. If it does, use tool 'save_pdf_to_system_memory', passing the path to save it in the system memory.
             2. Retrieve which agents you have available to include in the plan using the tool: 'retrieve_agents' (you can only include agents that you have available in the plan).
             3. Create an execution plan in valid JSON format for the user request.
-            4. Use the tool 'delegate_to_governance' to validate the plan JSON string.
+            4. You MUST use the tool 'delegate_to_governance' to validate the plan JSON string.
             5. If the validation fails, revise the plan and repeat step 3 until approved.
-            6. Once approved, immediately use the tool 'save_plan' with:
+            6. ONLY if approved, immediately use the tool 'save_plan'
+            7. After return the approved and saved plan immediately.
 
             CRITICAL RULES:
             - Return a final answer ONLY after execute all steps defined above
@@ -149,7 +152,8 @@ class CoreAgent:
                 delegate_to_reference_finder,
                 delegate_to_bibtex_generator,
                 delegate_to_validator,
-                delegate_to_governance_execution
+                delegate_to_governance_execution,
+                delegate_to_rag_agent
             ],
         )
 
