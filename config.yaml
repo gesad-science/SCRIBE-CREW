@@ -1,5 +1,5 @@
-USE_OLLAMA: true
-MODEL: qwen3:14b
+USE_OLLAMA: False
+MODEL: openai/gpt-4.1-mini
 TIMEOUT: 3600
 TEMPERATURE: 0
 MAX_RETRIES: 10

@@ -20,50 +20,64 @@ embeddings = HuggingFaceEmbeddings(
     model_name="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
 )
 
+from qdrant_client.http import models as rest
+
+def ensure_collection(client, collection_name: str, embedding_size: int):
+    collections = client.get_collections().collections
+    existing_names = [c.name for c in collections]
+
+    if collection_name not in existing_names:
+        client.create_collection(
+            collection_name=collection_name,
+            vectors_config=rest.VectorParams(
+                size=embedding_size,
+                distance=rest.Distance.COSINE
+            ),
+        )
+
+
 # ===============================
 # TOOL — SMART RETRIEVAL WITH DELIMITER
 # ===============================
 
+
 @tool
-def smart_retrieve_with_delimiter(input_json: str) -> str:
+def smart_retrieve_with_delimiter(query: str) -> str:
     """
     Hierarchical retrieval with delimiter filtering.
 
     Expected input JSON:
     {
-        "query": "what the user wants to know",
-        "paper_identifier": "paper title or unique identifier"
+        "query": "what the user wants to know in natural language",
     }
     """
 
-    try:
-        data = json.loads(input_json)
-        query = data["query"]
-        paper_identifier = data["paper_identifier"]
-    except Exception as e:
-        return json.dumps({"error": f"Invalid input format: {e}"})
+    #try:
+        #data = json.loads(input_json)
+        #query = data["query"]
+        #paper_identifier = data["paper_identifier"]
+    #except Exception as e:
+      #  return json.dumps({"error": f"Invalid input format: {e}"})
 
-    print(f"[TOOL] Smart retrieval for paper: {paper_identifier}")
     print(f"[TOOL] Query: {query}")
-
-    metadata_filter = {
-        "paper_identifier": paper_identifier
-    }
 
     # ---------------------------
     # STEP 1 — Try private memory
     # ---------------------------
 
+    embedding_size = len(embeddings.embed_query("test"))
+
+    ensure_collection(qdrant_client, RAG_COLLECTION, embedding_size)
+
     private_store = QdrantVectorStore(
         client=qdrant_client,
         collection_name=RAG_COLLECTION,
-        embeddings=embeddings
+        embedding=embeddings
     )
 
     private_docs = private_store.similarity_search(
         query,
         k=5,
-        filter=metadata_filter
     )
 
     if private_docs:
@@ -86,13 +100,12 @@ def smart_retrieve_with_delimiter(input_json: str) -> str:
     system_store = QdrantVectorStore(
         client=qdrant_client,
         collection_name=SYSTEM_COLLECTION,
-        embeddings=embeddings
+        embedding=embeddings
     )
 
     system_docs = system_store.similarity_search(
         query,
         k=5,
-        filter=metadata_filter
     )
 
     if not system_docs:
@@ -110,7 +123,6 @@ def smart_retrieve_with_delimiter(input_json: str) -> str:
     metadatas = [
         {
             **doc.metadata,
-            "paper_identifier": paper_identifier
         }
         for doc in system_docs
     ]
@@ -130,7 +142,6 @@ def smart_retrieve_with_delimiter(input_json: str) -> str:
     refreshed_docs = private_store.similarity_search(
         query,
         k=5,
-        filter=metadata_filter
     )
 
     return json.dumps({
@@ -178,21 +189,15 @@ hallucinate.
 # TASK BUILDER
 # ===============================
 
-def create_rag_task(user_query: str, paper_identifier: str) -> Task:
+def create_rag_task(user_query: str) -> Task:
 
     input_payload = json.dumps({
         "query": user_query,
-        "paper_identifier": paper_identifier
     })
 
     return Task(
         description=f"""
 You received a question about a specific paper.
-
-PAPER IDENTIFIER:
-\"\"\"
-{paper_identifier}
-\"\"\"
 
 USER QUESTION:
 \"\"\"
