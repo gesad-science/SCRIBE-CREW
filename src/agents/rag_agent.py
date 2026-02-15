@@ -40,7 +40,6 @@ def ensure_collection(client, collection_name: str, embedding_size: int):
 # TOOL — SMART RETRIEVAL WITH DELIMITER
 # ===============================
 
-
 @tool
 def smart_retrieve_with_delimiter(query: str) -> str:
     """
@@ -52,21 +51,12 @@ def smart_retrieve_with_delimiter(query: str) -> str:
     }
     """
 
-    #try:
-        #data = json.loads(input_json)
-        #query = data["query"]
-        #paper_identifier = data["paper_identifier"]
-    #except Exception as e:
-      #  return json.dumps({"error": f"Invalid input format: {e}"})
 
     print(f"[TOOL] Query: {query}")
 
-    # ---------------------------
-    # STEP 1 — Try private memory
-    # ---------------------------
+    SIMILARITY_THRESHOLD = 0.50  # ajuste empiricamente
 
     embedding_size = len(embeddings.embed_query("test"))
-
     ensure_collection(qdrant_client, RAG_COLLECTION, embedding_size)
 
     private_store = QdrantVectorStore(
@@ -75,10 +65,19 @@ def smart_retrieve_with_delimiter(query: str) -> str:
         embedding=embeddings
     )
 
-    private_docs = private_store.similarity_search(
+    # ---------------------------
+    # STEP 1 — Try private memory
+    # ---------------------------
+
+    private_results = private_store.similarity_search_with_score(
         query,
         k=5,
     )
+
+    private_docs = [
+        doc for doc, score in private_results
+        if score >= SIMILARITY_THRESHOLD
+    ]
 
     if private_docs:
         return json.dumps({
@@ -103,10 +102,15 @@ def smart_retrieve_with_delimiter(query: str) -> str:
         embedding=embeddings
     )
 
-    system_docs = system_store.similarity_search(
+    system_results = system_store.similarity_search_with_score(
         query,
         k=5,
     )
+
+    system_docs = [
+        doc for doc, score in system_results
+        if score >= SIMILARITY_THRESHOLD
+    ]
 
     if not system_docs:
         return json.dumps({
@@ -119,13 +123,7 @@ def smart_retrieve_with_delimiter(query: str) -> str:
     # ---------------------------
 
     texts = [doc.page_content for doc in system_docs]
-
-    metadatas = [
-        {
-            **doc.metadata,
-        }
-        for doc in system_docs
-    ]
+    metadatas = [doc.metadata for doc in system_docs]
 
     QdrantVectorStore.from_texts(
         texts=texts,
@@ -139,10 +137,15 @@ def smart_retrieve_with_delimiter(query: str) -> str:
     # STEP 4 — Retrieve again from private
     # ---------------------------
 
-    refreshed_docs = private_store.similarity_search(
+    refreshed_results = private_store.similarity_search_with_score(
         query,
         k=5,
     )
+
+    refreshed_docs = [
+        doc for doc, score in refreshed_results
+        if score >= SIMILARITY_THRESHOLD
+    ]
 
     return json.dumps({
         "status": "success",
@@ -155,6 +158,7 @@ def smart_retrieve_with_delimiter(query: str) -> str:
             for doc in refreshed_docs
         ]
     }, indent=2, ensure_ascii=False)
+
 
 
 # ===============================

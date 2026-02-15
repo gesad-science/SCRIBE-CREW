@@ -220,11 +220,36 @@ def delegate_to_governance_execution(information: str) -> str:
 
 
 from typing import List
+import inspect
+
 
 @tool
-def retrieve_agents() -> List[str]:
-    """Returns list of available agent names in the system."""
-    return ['reference_finder', 'bibtex_generator', 'governance', 'reference_validator', 'rag_agent']
+def retrieve_agents() -> str:
+    """
+    Returns metadata about explicitly allowed agent-delegation tools.
+    """
+
+    allowed_tools = [
+        delegate_to_reference_finder,
+        delegate_to_bibtex_generator,
+        delegate_to_governance_execution,
+        delegate_to_validator,
+        delegate_to_rag_agent,
+    ]
+
+    agents_metadata = []
+
+    for tool_obj in allowed_tools:
+        raw_docstring = inspect.getdoc(tool_obj.func)
+
+        agents_metadata.append({
+            "agent": tool_obj.name.replace("delegate_to_", ""),
+            "tool_name": tool_obj.name,
+            "description": raw_docstring
+        })
+
+    return json.dumps(agents_metadata, indent=2, ensure_ascii=False)
+
 
 @tool
 def get_tools() -> List[str]:
