@@ -1,7 +1,3 @@
-##### HARDCODED BY NOW #####
-
-# === TOOLS FOR CORE AGENT ===
-
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_qdrant import QdrantVectorStore
@@ -22,6 +18,7 @@ from src.agents.bibtex_agent import bibtex_generator_agent, create_bibtex_task
 from src.agents.validator_agent import reference_validator_agent, create_validation_task
 from src.agents.rag_agent import rag_agent, create_rag_task
 from src.agents.governance_agent.governance_agent import GovAgent
+from src.agents.core_agent.execution_memory import ExecutionMemory
 
 from src.utils import plan_guardrail
 
@@ -324,3 +321,30 @@ def delegate_to_rag_agent(query: str) -> str:
             "status": "error",
             "message": f"Reference Finder failed: {e}"
         })
+@tool
+def get_similar_plans(input: str) -> str:
+    """
+    Retrieve a previously validated execution plan that can be reusable for the given input.
+
+    This function searches the execution memory for a plan that is semantically
+    similar to the provided input and has already been validated.
+
+    Args:
+        input (str): The current user request or task description used to search
+                     for a reusable execution plan.
+
+    Returns:
+        The reusable execution plan object if a similar validated plan is found.
+        Returns the string 'Not found' if no reusable plan exists.
+
+    Notes:
+        - The similarity comparison logic is handled internally by ExecutionMemory.
+        - This function does not generate new plans; it only retrieves existing ones.
+    """
+    memory = ExecutionMemory()
+    usable_plan = memory.retrieve_reusable_plan(input)
+
+    if usable_plan:
+        return str(usable_plan)
+    else:
+        return 'Not found'
