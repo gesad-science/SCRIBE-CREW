@@ -19,6 +19,8 @@ from src.agents.core_agent.tools import (delegate_to_bibtex_generator,
 from crewai import Agent
 from langchain_huggingface import HuggingFaceEmbeddings
 
+from collections import deque
+
 emb = HuggingFaceEmbeddings(
             model_name="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
         )
@@ -37,8 +39,17 @@ class CoreAgent:
         self.core_orchestrator_agent = None
         self.crew=None
 
+        self.conversation_window = deque(maxlen=5)
+
         self._setup_agent()
         self._setup_crew()
+
+
+    def add_message(self, role, content):
+        self.conversation_window.append({"role": role, "content": content})
+
+    def get_recent_context(self):
+        return list(self.conversation_window)
 
     def _setup_agent(self):
 
@@ -92,6 +103,7 @@ class CoreAgent:
             - DO NOT return any text output
             - You MUST complete by calling 'save_plan' tool
             - ONLY save the plan after validated
+            - If the governance agent returns a problem that is not related to the plan format, but rather to information that violates the system's business rules, forward this information and immediately skip to the post-execution task, as there should be no execution in such cases.
             - The execution plan MUST strictly follow this JSON schema:
 
                 {
@@ -173,9 +185,12 @@ class CoreAgent:
                 - Verify that it can be reused for the current input.
                 - If it is reusable, adapt it to the current request and return it. Otherwise, just proceed to the other tasks
             - If no similar validated plan is found:
-                - Proceed to create a new execution plan.
+                - Return Not Found Plan.
 
             - Important notes on plan reuse:
+                - YOU ONLY RETURN SOMETHING IF THE TOOL `get_similar_plans` RETURNS A VALIDATED PLAN THAT CAN BE REUSED FOR THE CURRENT REQUEST.
+                - You NEVER creates a new plan, only edit the retrieved plan if it is reusable.
+                - You can edit some plan if it is an output of the tool `get_similar_plans`, else you MUST return Not Found Plan
                 - You MUST adapt the retrieved plan if necessary to make it reusable for the CURRENT REQUEST and to the CURRENT CONTEXT.
                 - Do not return a plan that is not adapted to the current context.
                 - Ensure that the reused plan is edited and fully aligned with the current user request and context before returning it.
@@ -193,8 +208,9 @@ class CoreAgent:
             description="""
             You are in a chatbot system. The current user request: ({user_input}) could be part of a broader conversation, so consider that the user could be referring to previous recent interactions or providing new information in the current request.
 
-            Assembly the necessary context from the current user request and previous interactions in your memory to fully understand the user's needs and intentions before proceeding to the next steps.
-            """,
+            Assemble the necessary context from the current user request and previous interactions in your memory to fully understand the user's needs and intentions before proceeding to the next steps.
+
+            In addition, prioritize in your context understanding the last 5 messages: {recent_context}""",
             expected_output="A new user request enriched with the necessary context from previous interactions to be fully understood",
             agent=self.core_orchestrator_agent,
             tools=[]
@@ -241,4 +257,5 @@ class CoreAgent:
         self.crew=crew
 
     def orchestrate(self, user_input:str):
-        return self.crew.kickoff(inputs={"user_input": user_input})
+        self.add_message(role="user", content=user_input)
+        return self.crew.kickoff(inputs={"user_input": user_input, "recent_context": self.get_recent_context()})
