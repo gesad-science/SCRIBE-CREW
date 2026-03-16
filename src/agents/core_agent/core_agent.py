@@ -1,8 +1,15 @@
+import os
+
+#os.environ["CI"] = "true"
+os.environ["CREWAI_TELEMETRY"] = "false"
+os.environ["CREWAI_TELEMETRY_DISABLED"] = "true"
+os.environ["CREWAI_TRACING_ENABLED"] = "false"
+
+#os.environ["LANGCHAIN_TRACING_V2"] = "false"
+os.environ["OTEL_SDK_DISABLED"] = "true"
+
 from crewai import Agent, Task, Crew, Process
 from src.entities.config import SystemConfig
-from src.utils import split_references
-import json
-from src.entities.execution import Execution
 from src.agents.core_agent.tools import (delegate_to_bibtex_generator,
                                          delegate_to_governance_execution,
                                          delegate_to_governance_plan,
@@ -13,7 +20,8 @@ from src.agents.core_agent.tools import (delegate_to_bibtex_generator,
                                          get_tools,
                                          save_pdf_to_system_memory,
                                          delegate_to_rag_agent,
-                                         get_similar_plans)
+                                         get_similar_plans,
+                                         delegate_to_download_agent)
 
 
 from crewai import Agent
@@ -39,6 +47,9 @@ class CoreAgent:
         self.core_orchestrator_agent = None
         self.crew=None
 
+        self.ollama_host = config.ollama_host
+        self.qdrant_host = config.qdrant_host
+
         self.conversation_window = deque(maxlen=5)
 
         self._setup_agent()
@@ -63,6 +74,7 @@ class CoreAgent:
         You coordinate specialized agents to plan and execute tasks.
         You must always respect governance validation before any execution.
         You can only act through the tools provided.
+        You can only return the final output after executing all the necessary tasks in order.
         """,
             tools=[
                 delegate_to_reference_finder,
@@ -112,6 +124,7 @@ class CoreAgent:
                             {
                                 "agent": "the agent responsible",
                                 "action": "the action that must be done",
+                                "input": "the input that the responsible agent needs to perform the action"
                             }
                         ]
                     }
@@ -139,17 +152,21 @@ class CoreAgent:
             Steps:
             1. Get your availiable tools with the tool 'get_tools'
             2. Use delegation tools that you retrieve in the step 1 to execute each action strictly in order.
-            3. Use the appropriate tool for each responsible agent.
+            3. Use the appropriate tool for each responsible agent in the plan.
             4. Collect the outputs of all tools.
             5. Produce the final response to the user using only the collected outputs.
 
             Rules:
+            - You MUST strictly follow the order of the steps in the plan.
             - Return ONLY after call all the necessary tools and collect their outputs.
+            - You CAN'T RETURN before executing all the steps in the plan, even if some of them fail, as long as they are not critical to the execution of the other steps. In case of a failed step, you should collect the error message and include it in the final answer to the user, so they are aware of what went wrong.
             - Pass the necessary information as context to each tool.
             - Your final objective is use the plan to respond to user request:
             - Do NOT modify the plan.
             - Do NOT revalidate the plan.
             - Do NOT add extra information beyond what the user requested.
+            - Make sure you are executing ALL the steps in the plan, and not leaving any step behind, as all steps are important to produce the final answer to the user.
+            - Even if some step fails, you should keep executing the other steps, as long as the failed step is not critical to the execution of the other steps. In case of a failed step, you should collect the error message and include it in the final answer to the user, so they are aware of what went wrong.
 
             """,
             expected_output="The final answer to the user.",
@@ -160,7 +177,9 @@ class CoreAgent:
                 delegate_to_bibtex_generator,
                 delegate_to_validator,
                 delegate_to_governance_execution,
-                delegate_to_rag_agent
+                delegate_to_rag_agent,
+                delegate_to_download_agent,
+                save_pdf_to_system_memory
             ],
         )
 
@@ -210,7 +229,11 @@ class CoreAgent:
 
             Assemble the necessary context from the current user request and previous interactions in your memory to fully understand the user's needs and intentions before proceeding to the next steps.
 
-            In addition, prioritize in your context understanding the last 5 messages: {recent_context}""",
+            In addition, prioritize in your context understanding the last 5 messages: {recent_context}
+
+            NOTES:
+            - You cannot use any tool in this task, so you must rely solely on your ability to understand and process natural language to extract the necessary context.
+            """,
             expected_output="A new user request enriched with the necessary context from previous interactions to be fully understood",
             agent=self.core_orchestrator_agent,
             tools=[]
@@ -224,6 +247,12 @@ class CoreAgent:
             Your responsibilities in the post-execution phase:
             1. Result format: Get the execution results data and format it in natural language in a clear and concise way to be returned to the user.
             2. Ensure information quality and quantity: Make sure to only return the necessary information to the user based on their request and the execution results. Avoid adding any unnecessary information that was not explicitly requested by the user.
+
+            NOTES:
+            - If the content of the execution suggests some kind of comparison or summary, add a table that summarizes or compares the results. The table should be in Markdown format:
+            | Metric | Value |
+            |--------|-------|
+            |        |       |
             """,
             expected_output="A clear and concise natural language response to the user based on the execution results",
             agent=self.core_orchestrator_agent,
@@ -237,6 +266,8 @@ class CoreAgent:
         execution_task = self._execution_task()
         post_execution_task = self._post_execution_task()
 
+        print(f"ollama host: {self.ollama_host}")
+
         crew = Crew(
             agents=[self.core_orchestrator_agent],
             tasks=[context_understanding_task, pre_plan_task, plan_task, execution_task, post_execution_task],
@@ -244,11 +275,12 @@ class CoreAgent:
             process=Process.sequential,
             output_log_file=self.output_log_file,
             memory=True,
+            tracing=False,
             embedder={
             "provider": "ollama",
             "config": {
                 "model_name": "nomic-embed-text",
-                "url": "http://localhost:11434"
+                "url": f"{self.ollama_host}"
             }
         }
         )

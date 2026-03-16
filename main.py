@@ -1,7 +1,7 @@
 from fastapi import FastAPI, UploadFile, File, Form
 from pathlib import Path
 import shutil
-
+import uvicorn
 from tests.run_execution import run_execution
 from fastapi.middleware.cors import CORSMiddleware
 import logging
@@ -9,6 +9,17 @@ import logging
 from src.agents.core_agent.core_agent import CoreAgent
 
 from pydantic import BaseModel
+
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+import builtins
+import sys
+#builtins.input = lambda *args, **kwargs: "n"
+#sys.stdin = open("/dev/null")
+#os.close(0)
+os.environ["OPENAI_API_KEY"] = os.getenv("API_KEY")
 
 
 class ExecuteRequest(BaseModel):
@@ -55,3 +66,7 @@ async def execute_with_pdf(
         "pdf_path": str(file_path),
         "result": result
     }
+
+
+if __name__ == "__main__":
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

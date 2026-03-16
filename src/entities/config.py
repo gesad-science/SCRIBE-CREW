@@ -38,6 +38,9 @@ class SystemConfig:
 
         self.policies = config['GOVERNANCE_CONFIG']['POLICIES']
 
+        self.ollama_host = f"http://{config['HOSTS']['OLLAMA']}:11434"
+        self.qdrant_host = config['HOSTS']['QDRANT']
+
         self._setup_llm()
 
         if self.use_ollama is True:
@@ -53,7 +56,7 @@ class SystemConfig:
         """Test if Ollama is responding"""
         try:
             import requests
-            response = requests.get("http://localhost:11434/api/tags", timeout=5)
+            response = requests.get(f"{self.ollama_host}/api/tags", timeout=5)
             if response.status_code != 200:
                 raise RuntimeError(f"Ollama returned status {response.status_code}")
             return True
@@ -76,7 +79,7 @@ class SystemConfig:
         if self.use_ollama is True:
             self.llm = LLM(
                 model=f"ollama/{self.model}",
-                base_url='http://localhost:11434',
+                base_url=f"{self.ollama_host}",
                 timeout=self.timeout,
                 temperature=self.temperature,
                 max_retries=self.max_retries,

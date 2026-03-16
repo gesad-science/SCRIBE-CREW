@@ -17,13 +17,14 @@ from src.agents.reference_agent import reference_finder_agent, create_reference_
 from src.agents.bibtex_agent import bibtex_generator_agent, create_bibtex_task
 from src.agents.validator_agent import reference_validator_agent, create_validation_task
 from src.agents.rag_agent import rag_agent, create_rag_task
+from src.agents.download_agent import create_download_task, paper_downloader_agent
 from src.agents.governance_agent.governance_agent import GovAgent
 from src.agents.core_agent.execution_memory import ExecutionMemory
-
+from src.entities.config import SystemConfig
 from src.utils import plan_guardrail
 
 gov_agent = GovAgent()
-
+config = SystemConfig()
 import json
 from pathlib import Path
 from datetime import datetime
@@ -36,6 +37,13 @@ def save_plan(plan_json:Dict) -> str:
 
     Args:
         plan_json (dict | str): The plan as a Python dict or JSON string.
+        The plan should be in format:
+        {
+            "plan": [
+                {
+                    "agent": "agent_name",
+                    "action": "tool_name",
+                    "input": "the input for the agents"
     Returns:
         Path: Path to the saved .pln file.
     """
@@ -62,6 +70,7 @@ def save_plan(plan_json:Dict) -> str:
 def delegate_to_reference_finder(reference_text: str) -> str:
     """
     Delegate to the Reference Finder Agent to search for a paper.
+    Use this agent when you need to find the metadata of a paper given a reference string, which can be a citation in the text, a bibliography entry, or any other string that contains information about the paper, as only the name. The Reference Finder Agent will try to extract as much information as possible from the input and return the paper metadata, such as title, authors, year, url, and bibtex.
 
     Args:
         reference_text: The academic reference string to find
@@ -95,7 +104,7 @@ def delegate_to_bibtex_generator(paper_metadata_json: str) -> str:
     Delegate to the BibTeX Generator Agent to create/fetch BibTeX entry.
 
     Args:
-        paper_metadata_json: JSON string with paper metadata
+        paper_metadata_json: JSON string with paper metadata (if no metadata is provided, the agent will try to find the metadata using any information it has in the context, like the title or authors)
 
     Returns:
         JSON string with BibTeX entry
@@ -183,11 +192,43 @@ def delegate_to_governance_plan(plan_json:str) -> str:
 
     try:
         result = gov_agent.call_plan_validation_task(plan_json)
+        print("GOVERNANCE VALIDATION RESULT 2:", result)
         return str(result)
     except Exception as e:
         return json.dumps({
             "status": "error",
             "message": f"Governance validation failed: {e}"
+        })
+
+@tool
+def delegate_to_download_agent(paper_information: str) -> str:
+    """
+    Delegate to the Download Agent to download a PDF from a URL and store it in system memory.
+    ALWAYS use this agent before RAG Agent when you need to find specific information inside the paper, as the Download Agent can give the RAG Agent access to the full text of the paper, which can be crucial to find the right answer for the user query.
+    You should call this agent when the user asks for information that requires access to the full text of the paper, and you don't have it in your internal memory. If you don't have any of this information but you have other metadata like the title or authors, you can still call the Download Agent and it will try to find the PDF using that metadata.
+
+    NOTES:
+    ALWAYS after running this agent, you should call the "save_pdf_to_system_memory" tool to give the RAG Agent access to the paper content and be able to find the right answer for the user query.
+
+    Args:
+        paper_information: The URL of the PDF to download or doi/arxiv id to find the PDF. (if no information is provided, the agent should try to find the PDF using any information it has in the context, like the title or authors)
+    """
+
+    task = create_download_task(paper_information)
+
+    crew = Crew(
+        agents=[paper_downloader_agent],
+        tasks=[task],
+        verbose=True,
+    )
+
+    try:
+        result = crew.kickoff()
+        return str(result)
+    except Exception as e:
+        return json.dumps({
+            "status": "error",
+            "message": f"Download Agent failed: {e}"
         })
 
 @tool
@@ -231,6 +272,7 @@ def retrieve_agents() -> str:
         delegate_to_bibtex_generator,
         delegate_to_governance_execution,
         delegate_to_validator,
+        delegate_to_download_agent,
         delegate_to_rag_agent,
     ]
 
@@ -244,18 +286,17 @@ def retrieve_agents() -> str:
             "tool_name": tool_obj.name,
             "description": raw_docstring
         })
-
     return json.dumps(agents_metadata, indent=2, ensure_ascii=False)
 
 
 @tool
 def get_tools() -> List[str]:
     """Returns list of available tools names in the system."""
-    return ['delegate_to_bibtex_generator','delegate_to_governance', 'delegate_to_reference_finder', 'delegate_to_validator', 'delegate_to_rag_agent']
+    return ['delegate_to_bibtex_generator','delegate_to_governance', 'delegate_to_reference_finder', 'delegate_to_validator', 'delegate_to_rag_agent', 'delegate_to_download_agent']
 
 SYSTEM_COLLECTION = "system_memory"
 
-qdrant_client = QdrantClient(host="localhost", port=6333)
+qdrant_client = QdrantClient(host=config.qdrant_host, port=6333)
 embeddings = HuggingFaceEmbeddings(
     model_name="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
 )
@@ -281,7 +322,7 @@ def save_pdf_to_system_memory(pdf_path: str) -> str:
     QdrantVectorStore.from_documents(
         documents=chunks,
         embedding=embeddings,
-        url="http://localhost:6333",
+        url=f"http://{config.qdrant_host}:6333",
         collection_name=SYSTEM_COLLECTION
     )
 
@@ -295,6 +336,10 @@ def save_pdf_to_system_memory(pdf_path: str) -> str:
 def delegate_to_rag_agent(query: str) -> str:
     """
     Delegate to the Rag Agent to search for some information inside some paper.
+    This agent should be used when you need to find specific information inside the paper, and you don't have that information in your internal memory. You can provide any information you have about the paper, like the title, authors, year, or even the PDF path if you have it in the context, and the Rag Agent will try to find the answer for your query using all the information it has in the context and also searching inside the paper if it has access to it.
+
+    NOTES:
+    This agent only can find information inside some paper if the paper is in the system memory, so before calling this agent, ensure the paper is indexed in the system memory.
 
     Args:
         query: a string with the data that you want from the paper.
@@ -341,10 +386,17 @@ def get_similar_plans(input: str) -> str:
         - The similarity comparison logic is handled internally by ExecutionMemory.
         - This function does not generate new plans; it only retrieves existing ones.
     """
-    memory = ExecutionMemory()
-    usable_plan = memory.retrieve_reusable_plan(input)
+    try:
+        memory = ExecutionMemory()
+        usable_plan = memory.retrieve_reusable_plan(input)
 
-    if usable_plan:
-        return str(usable_plan)
-    else:
-        return 'Not found'
+        if usable_plan:
+            return str(usable_plan)
+        else:
+            return 'Not found'
+
+    except Exception as e:
+        return json.dumps({
+            "status": "error",
+            "message": f"Error retrieving similar plans: {e}"
+        })

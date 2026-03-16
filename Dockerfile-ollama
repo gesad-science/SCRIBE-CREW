@@ -1,0 +1,7 @@
+FROM ollama/ollama:latest
+
+ENTRYPOINT []
+
+EXPOSE 11434
+
+CMD sh -c "ollama serve & sleep 5 && ollama pull nomic-embed-text && wait"

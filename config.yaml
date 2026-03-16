@@ -3,7 +3,7 @@ MODEL: openai/gpt-4.1-mini
 TIMEOUT: 3600
 TEMPERATURE: 0
 MAX_RETRIES: 10
-MAX_ITERATIONS: 10
+MAX_ITERATIONS: 100
 VERBOSE: true
 LOG_OUTPUT: true
 
@@ -18,3 +18,7 @@ GOVERNANCE_CONFIG:
   POLICIES:
     - No personal identifiable information (PII) should be present
     - Plans should be efficient (minimize redundant steps)
+
+HOSTS:
+  QDRANT: "localhost"
+  OLLAMA: "localhost"

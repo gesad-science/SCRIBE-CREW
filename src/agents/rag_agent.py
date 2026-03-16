@@ -15,7 +15,7 @@ config = SystemConfig()
 SYSTEM_COLLECTION = "system_memory"
 RAG_COLLECTION = "rag_private_memory"
 
-qdrant_client = QdrantClient(host="localhost", port=6333)
+qdrant_client = QdrantClient(host=config.qdrant_host, port=6333)
 embeddings = HuggingFaceEmbeddings(
     model_name="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
 )
@@ -34,6 +34,7 @@ def ensure_collection(client, collection_name: str, embedding_size: int):
                 distance=rest.Distance.COSINE
             ),
         )
+    print(f"Collection '{collection_name}' is ready.")
 
 
 # ===============================
@@ -58,6 +59,7 @@ def smart_retrieve_with_delimiter(query: str) -> str:
 
     embedding_size = len(embeddings.embed_query("test"))
     ensure_collection(qdrant_client, RAG_COLLECTION, embedding_size)
+    ensure_collection(qdrant_client, SYSTEM_COLLECTION, embedding_size)
 
     private_store = QdrantVectorStore(
         client=qdrant_client,
@@ -129,7 +131,7 @@ def smart_retrieve_with_delimiter(query: str) -> str:
         texts=texts,
         metadatas=metadatas,
         embedding=embeddings,
-        url="http://localhost:6333",
+        url=f"http://{config.qdrant_host}:6333",
         collection_name=RAG_COLLECTION
     )
 

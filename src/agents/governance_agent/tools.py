@@ -1,6 +1,6 @@
 from crewai.tools import tool
 from src.entities.config import SystemConfig
-import json 
+import json
 
 from src.utils import safe_json_parse
 import re
@@ -9,19 +9,19 @@ import re
 def get_system_policies() -> str:
     """
     Get the list of system policies that plans must comply with.
-    
+
     Returns:
         JSON string with system policies
     """
     print(f"[TOOL] Retrieving system policies...")
-    
+
     config = SystemConfig()
 
     result = {
         "policies": config.policies,
         "policy_count": len(config.policies)
     }
-    
+
     return json.dumps(result, indent=2)
 @tool
 def validate_plan_structure(plan_json: str) -> str:
@@ -109,24 +109,24 @@ def validate_plan_structure(plan_json: str) -> str:
 def detect_pii(text: str) -> str:
     """
     Detect potential Personal Identifiable Information (PII) in text.
-    
+
     Args:
         text: Text to scan for PII
-        
+
     Returns:
         JSON with PII detection results
     """
     print(f"[TOOL] Scanning for PII...")
-    
+
     pii_patterns = {
         "email": r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b',
         "phone": r'\b\d{3}[-.]?\d{3}[-.]?\d{4}\b',
         "ssn": r'\b\d{3}-\d{2}-\d{4}\b',
         "credit_card": r'\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b'
     }
-    
+
     detected = []
-    
+
     for pii_type, pattern in pii_patterns.items():
         matches = re.findall(pattern, text)
         if matches:
@@ -135,47 +135,47 @@ def detect_pii(text: str) -> str:
                 "count": len(matches),
                 "examples": matches[:2]  # Show first 2 examples
             })
-    
+
     result = {
         "pii_found": len(detected) > 0,
         "detected_types": detected,
         "severity": "high" if detected else "none"
     }
-    
+
     return json.dumps(result, indent=2)
 
 @tool
 def check_plan_efficiency(plan_json: str) -> str:
     """
     Check if an execution plan is efficient (no redundant steps).
-    
+
     Args:
         plan_json: JSON string with the execution plan
-        
+
     Returns:
         JSON with efficiency analysis
     """
     print(f"[TOOL] Analyzing plan efficiency...")
-    
+
     plan = safe_json_parse(plan_json)
-    
-    if not plan or "steps" not in plan:
+
+    if not plan:
         return json.dumps({
             "is_efficient": False,
             "issues": ["Cannot analyze invalid plan"]
         })
-    
-    steps = plan["steps"]
+
+    steps = plan["plan"]
     issues = []
     suggestions = []
-    
+
     # Check for duplicate actions with same input
     seen_actions = {}
     for i, step in enumerate(steps):
         action = step.get("action", "")
         input_text = step.get("input", "")
         key = f"{action}:{input_text}"
-        
+
         if key in seen_actions:
             issues.append(
                 f"Step {i+1} duplicates step {seen_actions[key]}: "
@@ -183,13 +183,13 @@ def check_plan_efficiency(plan_json: str) -> str:
             )
         else:
             seen_actions[key] = i + 1
-    
+
     # Check for excessive steps
     if len(steps) > 5:
         suggestions.append(
             f"Plan has {len(steps)} steps. Consider consolidating if possible."
         )
-    
+
     # Check if validation comes before generation
     actions = [s.get("action") for s in steps]
     if "validate_reference" in actions and "generate_bibtex" in actions:
@@ -199,12 +199,12 @@ def check_plan_efficiency(plan_json: str) -> str:
             suggestions.append(
                 "Consider validating after generating BibTeX, not before"
             )
-    
+
     result = {
         "is_efficient": len(issues) == 0,
         "issues": issues,
         "suggestions": suggestions,
         "step_count": len(steps)
     }
-    
+
     return json.dumps(result, indent=2)

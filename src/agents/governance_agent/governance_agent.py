@@ -24,8 +24,8 @@ class GovAgent:
             role="System Governance Controller",
             goal="Ensure all plans comply with policies and are well-structured",
             backstory="""
-        You are the system's policy enforcement officer. You validate that all 
-        execution plans follow the rules, are properly structured, contain no 
+        You are the system's policy enforcement officer. You validate that all
+        execution plans follow the rules, are properly structured, contain no
         sensitive information, and are efficient.
 
         You provide clear, constructive feedback when plans need improvement.
@@ -89,9 +89,10 @@ class GovAgent:
         tasks=[task],
         verbose=self.verbose,
         )
-        
-        return crew.kickoff()
-    
+        result = crew.kickoff().raw
+        print("GOVERNANCE VALIDATION RESULT:", result)
+        return result
+
     def call_execution_validation_task(self, data:str) -> str:
         task = Task(
             description=f"""
@@ -135,5 +136,5 @@ class GovAgent:
         tasks=[task],
         verbose=self.verbose,
         )
-        
+
         return crew.kickoff()

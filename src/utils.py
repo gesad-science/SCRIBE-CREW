@@ -9,7 +9,7 @@ def safe_json_parse(text: str) -> Optional[Dict]:
             text = text.split("```json")[1].split("```")[0]
         elif "```" in text:
             text = text.split("```")[1].split("```")[0]
-        
+
         return json.loads(text.strip())
     except Exception as e:
         print(f"JSON parsing error: {e}")
@@ -18,21 +18,21 @@ def safe_json_parse(text: str) -> Optional[Dict]:
 def validate_reference_string(ref: str) -> bool:
     if not ref or len(ref) < 20:
         return False
-    
+
     if not re.search(r'\b(19|20)\d{2}\b', ref):
         return False
-    
+
     if '.' not in ref:
         return False
-    
+
     return True
 
 def split_references(text: str) -> List[str]:
     lines = [l.strip() for l in text.split("\n") if l.strip()]
-    
+
     refs = []
     buffer = ""
-    
+
     for line in lines:
         if re.match(r'^\d+\.\s+', line):
             if buffer and validate_reference_string(buffer):
@@ -40,21 +40,21 @@ def split_references(text: str) -> List[str]:
             buffer = re.sub(r'^\d+\.\s+', '', line)
         else:
             buffer += " " + line
-    
+
     if buffer and validate_reference_string(buffer):
         refs.append(buffer.strip())
-    
+
     return refs
 
 def guess_title_from_reference(ref: str) -> str:
     ref = re.sub(r'^\d+\.\s+', '', ref)
-    
+
     sentences = re.split(r'[.\n]', ref)
     sentences = [s.strip() for s in sentences if len(s.strip()) > 15]
-    
+
     if not sentences:
-        return ref[:100]  
-    
+        return ref[:100]
+
     return max(sentences, key=len)
 
 def extract_year(ref: str) -> Optional[int]:
@@ -73,22 +73,22 @@ def extract_arxiv_id(ref: str) -> Optional[str]:
 
 def clean_reference_text(ref: str) -> str:
     ref = re.sub(r'\s+', ' ', ref)
-    
+
     ref = ref.strip()
-    
+
     return ref
 
 def extract_authors_simple(ref: str) -> List[str]:
     year_match = re.search(r'\b(19|20)\d{2}\b', ref)
     if not year_match:
         return []
-    
+
     author_text = ref[:year_match.start()].strip()
-    
+
     authors = re.split(r'[,;&]|\band\b', author_text)
     authors = [a.strip() for a in authors if len(a.strip()) > 3]
-    
-    return authors[:10]  
+
+    return authors[:10]
 
 def truncate_text(text: str, max_length: int = 500) -> str:
     if len(text) <= max_length:
@@ -98,17 +98,17 @@ def truncate_text(text: str, max_length: int = 500) -> str:
 def format_bibtex_entry(entry: str) -> str:
     if not entry:
         return ""
-    
+
     lines = entry.split('\n')
     formatted = []
-    
+
     for line in lines:
         line = line.strip()
         if line.startswith('@'):
             formatted.append(line)
         elif line:
             formatted.append('  ' + line)
-    
+
     return '\n'.join(formatted)
 
 import json
@@ -120,20 +120,20 @@ def normalize_json(data: Any) -> Any:
             data = json.loads(data)
         except json.JSONDecodeError:
             return data
-    
+
     if isinstance(data, dict):
-        if data:  
+        if data:
             return next(iter(data.values()))
-        return None  
-    
+        return None
+
     elif isinstance(data, list):
-        if data:  
+        if data:
             return data[0]
-        return None  
-    
+        return None
+
     else:
         return data
-    
+
 def plan_guardrail(plan):
     if isinstance(plan, str):
         plan_data = json.loads(plan)
@@ -143,8 +143,29 @@ def plan_guardrail(plan):
         plan_data = {"plan":plan}
     else:
         raise TypeError("plan must be in a valid format")
-    
+
     if "plan" not in plan_data or not isinstance(plan_data["plan"], list):
         raise ValueError("Invalid plan format: missing 'plan' list")
 
     return plan_data
+
+def simplify_semantic_scholar_results(data):
+
+    if data.get("status") != "success":
+        return data
+
+    simplified_papers = []
+
+    for paper in data.get("papers", []):
+        simplified_paper = {
+            "title": paper.get("title"),
+            "url": paper.get("url"),
+            "authors": [author.get("name") for author in paper.get("authors", [])],
+            "doi": paper.get("externalIds", {}).get("DOI")
+        }
+        simplified_papers.append(simplified_paper)
+
+    return {
+        "status": data.get("status"),
+        "papers": simplified_papers
+    }

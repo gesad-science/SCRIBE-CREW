@@ -1,13 +1,10 @@
-from dataclasses import asdict
 from typing import Dict, List, Optional
-from crewai.memory.memory import Memory
 from qdrant_client import QdrantClient
 from langchain_huggingface import HuggingFaceEmbeddings
 from qdrant_client.http import models as rest
 from langchain_qdrant import QdrantVectorStore
 from langchain_core.documents import Document
 import uuid
-import json
 from src.entities.execution import Execution
 
 

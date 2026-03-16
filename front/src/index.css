@@ -1,0 +1,111 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Source+Serif+4:ital,wght@0,300;0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 39 32% 96%;
+    --foreground: 220 30% 12%;
+
+    --card: 39 28% 93%;
+    --card-foreground: 220 30% 12%;
+
+    --popover: 39 28% 93%;
+    --popover-foreground: 220 30% 12%;
+
+    --primary: 220 40% 20%;
+    --primary-foreground: 39 32% 96%;
+
+    --secondary: 39 20% 88%;
+    --secondary-foreground: 220 30% 18%;
+
+    --muted: 39 18% 90%;
+    --muted-foreground: 220 15% 45%;
+
+    --accent: 42 70% 50%;
+    --accent-foreground: 220 40% 12%;
+
+    --destructive: 0 60% 50%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 39 20% 82%;
+    --input: 39 20% 85%;
+    --ring: 42 70% 50%;
+
+    --radius: 0.5rem;
+
+    --sidebar-background: 39 28% 93%;
+    --sidebar-foreground: 220 30% 12%;
+    --sidebar-primary: 220 40% 20%;
+    --sidebar-primary-foreground: 39 32% 96%;
+    --sidebar-accent: 39 20% 88%;
+    --sidebar-accent-foreground: 220 30% 18%;
+    --sidebar-border: 39 20% 82%;
+    --sidebar-ring: 42 70% 50%;
+
+    --chat-user: 220 40% 20%;
+    --chat-user-foreground: 39 32% 96%;
+    --chat-assistant: 39 22% 90%;
+    --chat-assistant-foreground: 220 30% 12%;
+
+    --font-display: 'Playfair Display', Georgia, serif;
+    --font-body: 'Source Serif 4', Georgia, serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+
+  .dark {
+    --background: 220 30% 8%;
+    --foreground: 39 20% 90%;
+
+    --card: 220 25% 12%;
+    --card-foreground: 39 20% 90%;
+
+    --popover: 220 25% 12%;
+    --popover-foreground: 39 20% 90%;
+
+    --primary: 39 25% 85%;
+    --primary-foreground: 220 30% 10%;
+
+    --secondary: 220 20% 18%;
+    --secondary-foreground: 39 20% 85%;
+
+    --muted: 220 15% 18%;
+    --muted-foreground: 39 12% 55%;
+
+    --accent: 42 65% 55%;
+    --accent-foreground: 220 30% 8%;
+
+    --destructive: 0 55% 45%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 220 15% 22%;
+    --input: 220 15% 22%;
+    --ring: 42 65% 55%;
+
+    --chat-user: 220 25% 22%;
+    --chat-user-foreground: 39 20% 90%;
+    --chat-assistant: 220 20% 15%;
+    --chat-assistant-foreground: 39 20% 85%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-body);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+  }
+
+  code, pre {
+    font-family: var(--font-mono);
+  }
+}
