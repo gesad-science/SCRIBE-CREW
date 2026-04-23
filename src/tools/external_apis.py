@@ -1,18 +1,12 @@
-# src/tools/external_apis.py
-
 import time
 
-"""
-External API tools - deterministic functions that call external services.
-These do NOT use LLMs, only HTTP APIs.
-"""
 
 import requests
 import re
 from typing import Dict, List, Optional
 from src.utils import simplify_semantic_scholar_results
 
-def search_semantic_scholar(query: str, limit: int = 3, max_retries: int = 10, year: int = None):
+def search_semantic_scholar(query: str, limit: int = 3, max_retries: int = 5, year: int = None):
     url = "https://api.semanticscholar.org/graph/v1/paper/search"
 
     params = {
@@ -29,28 +23,40 @@ def search_semantic_scholar(query: str, limit: int = 3, max_retries: int = 10, y
     }
 
     for attempt in range(max_retries):
-        print("iter")
         try:
-            response = requests.get(url, headers=headers, params=params)
+            print(f"[SemanticScholar] attempt {attempt+1}")
+
+            response = requests.get(
+                url,
+                headers=headers,
+                params=params,
+                timeout=10  # 🔥 CRUCIAL
+            )
 
             if response.status_code == 429:
-                wait = 2 ** attempt
+                wait = min(2 ** attempt, 10)  # 🔥 LIMITA backoff
+                print(f"[RATE LIMIT] waiting {wait}s")
                 time.sleep(wait)
                 continue
 
             response.raise_for_status()
+
             data = response.json().get("data", [])
-            print("data: ", data)
+            print(f"[RESULTS] found {len(data)} papers")
+
             answer = {"status": "success", "papers": data}
 
-            if limit>=3:
+            if limit >= 3:
                 answer = simplify_semantic_scholar_results(answer)
 
             return answer
+
         except requests.Timeout:
+            print("[ERROR] Timeout")
             return {"status": "timeout", "papers": []}
 
-        except requests.HTTPError as e:
+        except requests.RequestException as e:
+            print(f"[ERROR] {e}")
             return {
                 "status": "error",
                 "message": str(e),
@@ -62,8 +68,6 @@ def search_semantic_scholar(query: str, limit: int = 3, max_retries: int = 10, y
         "message": "Rate limit exceeded after retries",
         "papers": []
     }
-
-
 
 """
 def search_semantic_scholar(query: str, limit: int = 3, max_retries: int = 5):
@@ -216,10 +220,8 @@ def construct_bibtex_manually(paper_info: Dict) -> str:
 
     cite_key = f"{first_author}{year}"
 
-    # Format authors
     author_str = " and ".join(authors) if authors else "Unknown Author"
 
-    # Build BibTeX
     bibtex_parts = [
         f"@article{{{cite_key},",
         f"  title={{{title}}},"
@@ -251,15 +253,12 @@ def validate_bibtex_format(bibtex_str: str) -> bool:
     if not bibtex_str or not isinstance(bibtex_str, str):
         return False
 
-    # Must start with @
     if not bibtex_str.strip().startswith("@"):
         return False
 
-    # Must have balanced braces
     if bibtex_str.count("{") != bibtex_str.count("}"):
         return False
 
-    # Must have citation key
     if not re.search(r'@\w+\{[\w\d]+,', bibtex_str):
         return False
 

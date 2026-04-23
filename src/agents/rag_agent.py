@@ -8,9 +8,6 @@ import json
 
 config = SystemConfig()
 
-# ===============================
-# GLOBAL CONFIG
-# ===============================
 
 SYSTEM_COLLECTION = "system_memory"
 RAG_COLLECTION = "rag_private_memory"
@@ -37,10 +34,6 @@ def ensure_collection(client, collection_name: str, embedding_size: int):
     print(f"Collection '{collection_name}' is ready.")
 
 
-# ===============================
-# TOOL — SMART RETRIEVAL WITH DELIMITER
-# ===============================
-
 @tool
 def smart_retrieve_with_delimiter(query: str) -> str:
     """
@@ -55,7 +48,7 @@ def smart_retrieve_with_delimiter(query: str) -> str:
 
     print(f"[TOOL] Query: {query}")
 
-    SIMILARITY_THRESHOLD = 0.50  # ajuste empiricamente
+    SIMILARITY_THRESHOLD = 0.50
 
     embedding_size = len(embeddings.embed_query("test"))
     ensure_collection(qdrant_client, RAG_COLLECTION, embedding_size)
@@ -67,9 +60,6 @@ def smart_retrieve_with_delimiter(query: str) -> str:
         embedding=embeddings
     )
 
-    # ---------------------------
-    # STEP 1 — Try private memory
-    # ---------------------------
 
     private_results = private_store.similarity_search_with_score(
         query,
@@ -94,9 +84,6 @@ def smart_retrieve_with_delimiter(query: str) -> str:
             ]
         }, indent=2, ensure_ascii=False)
 
-    # ---------------------------
-    # STEP 2 — Try system memory
-    # ---------------------------
 
     system_store = QdrantVectorStore(
         client=qdrant_client,
@@ -120,9 +107,6 @@ def smart_retrieve_with_delimiter(query: str) -> str:
             "chunks": []
         })
 
-    # ---------------------------
-    # STEP 3 — Cache into private memory
-    # ---------------------------
 
     texts = [doc.page_content for doc in system_docs]
     metadatas = [doc.metadata for doc in system_docs]
@@ -135,9 +119,6 @@ def smart_retrieve_with_delimiter(query: str) -> str:
         collection_name=RAG_COLLECTION
     )
 
-    # ---------------------------
-    # STEP 4 — Retrieve again from private
-    # ---------------------------
 
     refreshed_results = private_store.similarity_search_with_score(
         query,
@@ -162,11 +143,6 @@ def smart_retrieve_with_delimiter(query: str) -> str:
     }, indent=2, ensure_ascii=False)
 
 
-
-# ===============================
-# AGENT
-# ===============================
-
 rag_agent = Agent(
     role="Hierarchical RAG Specialist",
     goal="Answer user questions using hierarchical memory filtered by paper identifier",
@@ -190,10 +166,6 @@ hallucinate.
     allow_delegation=False
 )
 
-
-# ===============================
-# TASK BUILDER
-# ===============================
 
 def create_rag_task(user_query: str) -> Task:
 

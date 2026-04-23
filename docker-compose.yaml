@@ -19,6 +19,8 @@ services:
       - qdrant
       - ollama
     restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   qdrant:
     image: qdrant/qdrant:latest
@@ -51,6 +53,7 @@ services:
     depends_on:
       - api
     restart: unless-stopped
+
 
 volumes:
   qdrant_storage:

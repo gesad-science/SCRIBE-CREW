@@ -98,7 +98,6 @@ def parse_by_patterns(lines: list[str], patterns: list[str]) -> list[dict]:
         if current_pattern is not None:
             buffer.append(line)
 
-    # flush final
     flush()
 
     return results
@@ -120,7 +119,6 @@ def build_high_level_story(parsed_events):
     for event in parsed_events:
         key, value = list(event.items())[0]
 
-        # ---------- Agent Started ----------
         if key == "Agent Started":
             if current_agent:
                 story.append(current_agent)
@@ -133,7 +131,6 @@ def build_high_level_story(parsed_events):
                 "final_answer": None
             }
 
-        # ---------- Tool ----------
         elif key.startswith("Using Tool"):
             tool_name = value.strip()
 
@@ -153,7 +150,6 @@ def build_high_level_story(parsed_events):
             if current_step:
                 current_step["output"] = value
 
-        # ---------- Final Answer ----------
         elif key == "Agent Final Answer":
             if current_agent:
                 current_agent["final_answer"] = value

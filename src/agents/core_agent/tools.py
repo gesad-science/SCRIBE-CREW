@@ -4,6 +4,8 @@ from langchain_qdrant import QdrantVectorStore
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from qdrant_client import QdrantClient
 
+from pydantic import BaseModel
+
 import os
 
 from crewai.tools import tool
@@ -12,7 +14,6 @@ import json
 from src.entities.config import SystemConfig
 config = SystemConfig()
 
-# Import specialized agents
 from src.agents.reference_agent import reference_finder_agent, create_reference_task
 from src.agents.bibtex_agent import bibtex_generator_agent, create_bibtex_task
 from src.agents.validator_agent import reference_validator_agent, create_validation_task
@@ -22,6 +23,7 @@ from src.agents.governance_agent.governance_agent import GovAgent
 from src.agents.core_agent.execution_memory import ExecutionMemory
 from src.entities.config import SystemConfig
 from src.utils import plan_guardrail
+import requests
 
 gov_agent = GovAgent()
 config = SystemConfig()
@@ -399,4 +401,61 @@ def get_similar_plans(input: str) -> str:
         return json.dumps({
             "status": "error",
             "message": f"Error retrieving similar plans: {e}"
+        })
+
+@tool
+def get_agents():
+    """
+    Return a detailed list with the available agents and their utilities
+    """
+
+    return retrieve_detailed_agents()
+
+
+def retrieve_detailed_agents():
+
+    try:
+        response = requests.get("http://localhost:7000/agents")
+        return response.json()
+    except Exception as e:
+        return json.dumps({
+            "status": "error",
+            "message": f"Error connecting to control plane: {e}"
+        })
+
+@tool
+def get_agent_names():
+    """Returns a list of available agent names in the system."""
+    agents = retrieve_detailed_agents()
+    if isinstance(agents, dict) and "agents" in agents:
+        agents = agents["agents"]
+        return [agent["name"] for agent in agents]
+    else:
+        return []
+
+
+
+@tool("call_agent")
+def call_agent(agent_name: str, input_data:str) -> str:
+    """
+    Calls an available agent.
+
+    Args:
+        payload.agent_name: Name of the agent
+        payload.input_data: Input data (string or dict)
+    """
+
+    try:
+        response = requests.post(
+            "http://localhost:7000/call",
+            json={
+                "agent_name": agent_name,
+                "input_data": input_data
+            }
+        )
+        return response.json()
+    except Exception as e:
+        return json.dumps({
+            "status": "error",
+            "message": f"Error connecting to control plane: {e}"
         })
