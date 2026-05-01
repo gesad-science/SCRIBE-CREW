@@ -7,6 +7,7 @@ from qdrant_client import QdrantClient
 from pydantic import BaseModel
 
 import os
+from typing import Type
 
 from crewai.tools import tool
 from crewai import Crew, Task
@@ -30,24 +31,48 @@ config = SystemConfig()
 import json
 from pathlib import Path
 from datetime import datetime
-from typing import Dict
+from typing import Dict, List
 
-@tool
-def save_plan(plan_json:Dict) -> str:
+from crewai.tools import BaseTool
+from pydantic import BaseModel, Field
+
+class PlanStep(BaseModel):
+    agent: str
+    action: str
+    input: str
+
+class PlanContainer(BaseModel):
+    plan: List[PlanStep]
+
+class SavePlanInput(BaseModel):
+    plan_json: PlanContainer
+
+class SavePlanTool(BaseTool):
+    name: str = "save_plan"
+    description: str = "Saves the validated plan"
+
+    args_schema: Type[BaseModel] = SavePlanInput
+
+
+    def _run(self, plan_json: dict) -> str:
+        save_plan(plan_json=plan_json)
+
+def save_plan(plan_json: Dict) -> str:
     """
-    Save a plan JSON to a .pln file.
+    Save a plan.
 
-    Args:
-        plan_json (dict | str): The plan as a Python dict or JSON string.
-        The plan should be in format:
-        {
-            "plan": [
-                {
-                    "agent": "agent_name",
-                    "action": "tool_name",
-                    "input": "the input for the agents"
-    Returns:
-        Path: Path to the saved .pln file.
+    REQUIRED FORMAT:
+    {
+        "plan": [
+            {"step": "description of step 1"},
+            {"step": "description of step 2"}
+        ]
+    }
+
+    Rules:
+    - 'plan' MUST be a list
+    - Each item MUST contain a 'step' field
+    - Do NOT pass empty dict
     """
 
     directory = "plans"
@@ -174,7 +199,34 @@ def delegate_to_validator(reference_data_json: str) -> str:
             "message": f"Validator failed: {e}"
         })
 
-@tool
+class GovernancePlanInput(BaseModel):
+    plan_json: PlanContainer
+
+class DelegateToGovernancePlanTool(BaseTool):
+    name: str = "delegate_to_governance"
+    description: str = "Validate a plan using governance agent"
+
+    args_schema: Type[BaseModel] = GovernancePlanInput
+
+    def _run(self, plan_json: dict) -> str:
+        print("\n[CORE] Delegating to Governance Agent...\n")
+
+        try:
+            # GARANTE formato correto
+            if isinstance(plan_json, str):
+                plan_json = json.loads(plan_json)
+
+            validated = plan_guardrail(plan_json)
+
+            result = gov_agent.call_plan_validation_task(validated)
+
+            return json.dumps(result)
+
+        except Exception as e:
+            return json.dumps({
+                "status": "error",
+                "message": str(e)
+            })
 def delegate_to_governance_plan(plan_json:str) -> str:
     """
     Delegate to the Governance Agent to validate a plan.
@@ -415,7 +467,7 @@ def get_agents():
 def retrieve_detailed_agents():
 
     try:
-        response = requests.get("http://localhost:7000/agents")
+        response = requests.get("http://scribe-control-plane:7000/agents")
         return response.json()
     except Exception as e:
         return json.dumps({
@@ -447,7 +499,7 @@ def call_agent(agent_name: str, input_data:str) -> str:
 
     try:
         response = requests.post(
-            "http://localhost:7000/call",
+            "http://scribe-control-plane:7000/call",
             json={
                 "agent_name": agent_name,
                 "input_data": input_data

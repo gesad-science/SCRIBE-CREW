@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import uvicorn
-from src.control_plane.control_plane import ControlPlane
+from control_plane.control_plane import ControlPlane
 
 app = FastAPI()
 
@@ -10,7 +10,7 @@ class CallRequest(BaseModel):
     input_data: dict | str
 
 
-cp = ControlPlane()
+cp = ControlPlane(host="scribe-api")
 
 
 @app.get("/agents")

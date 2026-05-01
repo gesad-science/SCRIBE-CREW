@@ -20,5 +20,5 @@ GOVERNANCE_CONFIG:
     - Plans should be efficient (minimize redundant steps)
 
 HOSTS:
-  QDRANT: "localhost"
-  OLLAMA: "localhost"
+  QDRANT: "scribe-qdrant"
+  OLLAMA: "scribe-ollama"

@@ -17,7 +17,9 @@ from src.agents.core_agent.tools import (
                                          get_similar_plans,
                                          get_agents,
                                          call_agent,
-                                         get_agent_names)
+                                         get_agent_names,
+                                         SavePlanTool,
+                                         DelegateToGovernancePlanTool)
 
 
 from crewai import Agent
@@ -71,7 +73,7 @@ class CoreAgent:
         You can only act through the tools provided.
         You can only return the final output after executing all the necessary tasks in order.
         """,
-            tools=[delegate_to_governance_plan, save_plan, save_pdf_to_system_memory, get_similar_plans, get_agents, call_agent, get_agent_names],
+            tools=[DelegateToGovernancePlanTool(), SavePlanTool(), save_pdf_to_system_memory, get_similar_plans, get_agents, call_agent, get_agent_names],
             llm=self.llm,
             max_iter=self.max_iterations,
             verbose=self.verbose,
@@ -124,7 +126,7 @@ class CoreAgent:
             """,
             expected_output="A validated and saved execution plan JSON",
             agent=self.core_orchestrator_agent,
-            tools=[get_agents, delegate_to_governance_plan, save_plan],
+            tools=[get_agents, DelegateToGovernancePlanTool(), SavePlanTool()],
         )
 
     def _execution_task(self):
@@ -247,8 +249,9 @@ class CoreAgent:
             verbose=self.verbose,
             process=Process.sequential,
             output_log_file=self.output_log_file,
-            memory=True,
+            memory=False,
             tracing=False,
+            cache=False,
             embedder={
             "provider": "ollama",
             "config": {

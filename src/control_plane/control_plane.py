@@ -1,10 +1,11 @@
 import requests
 import logging
 import json
-from a2a.client import Client
+#from a2a.client import Client
 import difflib
-import asyncio
+#import asyncio
 import uuid
+import time
 
 
 logging.basicConfig(level=logging.INFO)
@@ -16,8 +17,12 @@ class ControlPlane:
         self.host = host
         self.port_range = port_range
         self.registry = {}
+        logger.info("[START] Control Plane is starting...")
 
+        time.sleep(165)
         self.discover_agents()
+        logger.info("[START] Started is complete...")
+
 
     def discover_agents(self):
         logger.info("[DISCOVERY] Scanning for A2A agents...")

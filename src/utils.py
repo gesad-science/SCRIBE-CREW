@@ -145,7 +145,9 @@ def plan_guardrail(plan):
         raise TypeError("plan must be in a valid format")
 
     if "plan" not in plan_data or not isinstance(plan_data["plan"], list):
-        raise ValueError("Invalid plan format: missing 'plan' list")
+        raise ValueError(
+        "Invalid plan format. You MUST generate a valid plan with a 'plan' list before calling this tool again."
+        )
 
     return plan_data
 

@@ -5,25 +5,20 @@ from src.tools.external_apis import search_semantic_scholar
 from src.utils import guess_title_from_reference, extract_doi, extract_arxiv_id
 import json
 from src.utils import normalize_json
-from typing import Type
+import os
 
-from src.entities.config import SystemConfig
-config = SystemConfig()
+#from src.entities.config import SystemConfig
+#config = SystemConfig()
 
-from crewai.tools import BaseTool
-from pydantic import BaseModel, Field
+llm = LLM(
+        model="openai/gpt-4.1-mini",
+        timeout=300,
+        temperature=0.1,
+        max_retries=3,
+        api_key=os.environ.get("API_KEY")
+    )
 
-class SearchPaperByTitleInput(BaseModel):
-    title: str = Field(..., description="The paper title to search for")
-
-class SearchPaperByTitleTool(BaseTool):
-    name:str = "search_paper_by_title"
-    description:str = "Search for an academic paper using its title. This tool queries Semantic Scholar API."
-    args_schema: Type[BaseModel] = SearchPaperByTitleInput
-
-    def _run(self, title:str) -> str:
-        return search_paper_by_title(title)
-
+@tool
 def search_paper_by_title(title: str) -> str:
     """
     Search for an academic paper using its title.
@@ -45,18 +40,7 @@ def search_paper_by_title(title: str) -> str:
 
     return json.dumps(result, indent=2, ensure_ascii=False)
 
-class SearchByTopicInput(BaseModel):
-    topic: str = Field(..., description="The research topic keyword or subject area to search for (e.g., 'machine learning', 'climate change')")
-    year: int = Field(..., description="The publication year to filter results (e.g., 2023). Papers from this year will be prioritized")
-
-class SearchByTopicTool(BaseTool):
-    name:str = "search_by_topic"
-    description:str = "Search for academic papers related to a specific topic and year. This tool queries Semantic Scholar API to find relevant papers by topic/subject area, optionally filtered by publication year."
-    args_schema: Type[BaseModel] = SearchByTopicInput
-
-    def _run(self, topic:str, year:int) -> str:
-        return search_by_topic(topic, year)
-
+@tool
 def search_by_topic(topic:str, year:int) -> str:
     """
         Search for academic papers related to a specific topic and year.
@@ -80,17 +64,7 @@ def search_by_topic(topic:str, year:int) -> str:
     result = search_semantic_scholar(topic, year=year, limit=20)
     return json.dumps(result, indent=2, ensure_ascii=False)
 
-class ExtractIdentifiersInput(BaseModel):
-    reference_text: str = Field(..., description="The full reference text to extract identifiers from")
-
-class ExtractIdentifiersTool(BaseTool):
-    name:str = "extract_identifiers_from_reference"
-    description:str = "Extract DOI and arXiv ID from a reference string. This tool uses regex patterns to identify and extract these identifiers from the reference text."
-    args_schema: type[BaseModel] = ExtractIdentifiersInput
-
-    def _run(self, reference_text:str) -> str:
-        return extract_identifiers_from_reference(reference_text)
-
+@tool
 def extract_identifiers_from_reference(reference_text: str) -> str:
     """
     Extract DOI and arXiv ID from a reference string.
@@ -119,17 +93,7 @@ def extract_identifiers_from_reference(reference_text: str) -> str:
 
     return json.dumps(result, indent=2)
 
-class GuessTitleInput(BaseModel):
-    reference_text: str = Field(..., description="The full reference text to guess the title from")
-
-class GuessTitleTool(BaseTool):
-    name:str = "guess_title_tool"
-    description:str = "Estimate the paper title from a reference string. Usually the title is the longest sentence in the reference."
-    args_schema: type[BaseModel] = GuessTitleInput
-
-    def _run(self, reference_text:str) -> str:
-        return guess_title_tool(reference_text)
-
+@tool
 def guess_title_tool(reference_text: str) -> str:
     """
     Estimate the paper title from a reference string.
@@ -147,6 +111,7 @@ def guess_title_tool(reference_text: str) -> str:
 
     return title
 
+
 reference_finder_agent = Agent(
     role="Academic Reference Finder",
     goal="Find and retrieve metadata JSON for academic papers from reference strings",
@@ -158,7 +123,7 @@ and extract their metadata including title, authors, year, and BibTeX.
 You NEVER invent or hallucinate data. You ONLY use information returned
 by your tools. If a paper cannot be found, you report that clearly. And you only can return JSON in the specified format.
 """,
-    tools=[SearchPaperByTitleTool(), ExtractIdentifiersTool(), GuessTitleTool(), SearchByTopicTool()],
+    tools=[search_paper_by_title, extract_identifiers_from_reference, guess_title_tool, search_by_topic],
     llm=config.llm,
     max_iter=3,
     verbose=True,
@@ -237,5 +202,5 @@ OUTPUT FORMAT (TO TWO OR MORE PAPERS) (JSON):
 """,
         agent=reference_finder_agent,
         expected_output="A JSON object with the reference metadata or not_found status",
-        #tools=[search_paper_by_title, extract_identifiers_from_reference, guess_title_tool, search_by_topic]
+        tools=[search_paper_by_title, extract_identifiers_from_reference, guess_title_tool, search_by_topic]
     )

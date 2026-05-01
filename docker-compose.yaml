@@ -11,7 +11,7 @@ services:
       - "8000:8000"
     volumes:
       - ./src:/app/src
-      - ./pdfs:/app/pdfs
+      #- ./pdfs:/app/pdfs
       - ./plans:/app/plans
     env_file:
       - .env
@@ -21,6 +21,23 @@ services:
     restart: unless-stopped
     extra_hosts:
       - "host.docker.internal:host-gateway"
+
+
+  control_plane:
+    build:
+      context: .
+      dockerfile: Dockerfile.controlplane
+    container_name: scribe-control-plane
+    env_file:
+      - .env
+    depends_on:
+      - qdrant
+      - ollama
+      - api
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
 
   qdrant:
     image: qdrant/qdrant:latest
