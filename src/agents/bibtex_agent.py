@@ -1,7 +1,7 @@
 from crewai import Agent, Task, LLM
 from crewai.tools import tool
 from src.tools.external_apis import (
-    fetch_bibtex_by_doi,
+    fetch_bibtex_by_doi, 
     fetch_bibtex_by_arxiv,
     construct_bibtex_manually,
     validate_bibtex_format
@@ -9,22 +9,23 @@ from src.tools.external_apis import (
 import json
 from src.entities.config import SystemConfig
 config = SystemConfig()
+# === TOOLS ===
 
 @tool
 def fetch_bibtex_from_doi(doi: str) -> str:
     """
     Fetch BibTeX entry using a DOI (Digital Object Identifier).
-
+    
     Args:
         doi: The DOI string (e.g., "10.1234/example.2020")
-
+        
     Returns:
         BibTeX string or error message
     """
     print(f"[TOOL] Fetching BibTeX for DOI: {doi}")
-
+    
     bibtex = fetch_bibtex_by_doi(doi)
-
+    
     if bibtex:
         return bibtex
     else:
@@ -34,17 +35,17 @@ def fetch_bibtex_from_doi(doi: str) -> str:
 def fetch_bibtex_from_arxiv(arxiv_id: str) -> str:
     """
     Fetch BibTeX entry using an arXiv ID.
-
+    
     Args:
         arxiv_id: The arXiv identifier (e.g., "2020.12345")
-
+        
     Returns:
         BibTeX string or error message
     """
     print(f"[TOOL] Fetching BibTeX for arXiv: {arxiv_id}")
-
+    
     bibtex = fetch_bibtex_by_arxiv(arxiv_id)
-
+    
     if bibtex:
         return bibtex
     else:
@@ -55,15 +56,15 @@ def create_bibtex_manually(paper_json: str) -> str:
     """
     Manually construct a BibTeX entry from paper metadata.
     Use this when DOI/arXiv fetching fails or when no BibTeX is available.
-
+    
     Args:
         paper_json: JSON string with paper metadata (title, authors, year, url)
-
+        
     Returns:
         Constructed BibTeX string
     """
     print(f"[TOOL] Manually constructing BibTeX entry...")
-
+    
     try:
         paper_info = json.loads(paper_json)
         bibtex = construct_bibtex_manually(paper_info)
@@ -75,31 +76,32 @@ def create_bibtex_manually(paper_json: str) -> str:
 def validate_bibtex(bibtex_str: str) -> str:
     """
     Validate if a string is a valid BibTeX entry.
-
+    
     Args:
         bibtex_str: The BibTeX string to validate
-
+        
     Returns:
         JSON with validation result
     """
     print(f"[TOOL] Validating BibTeX format...")
-
+    
     is_valid = validate_bibtex_format(bibtex_str)
-
+    
     result = {
         "is_valid": is_valid,
         "message": "Valid BibTeX format" if is_valid else "Invalid BibTeX format"
     }
-
+    
     return json.dumps(result, indent=2)
 
+# === AGENT ===
 
 bibtex_generator_agent = Agent(
     role="BibTeX Entry Generator",
     goal="Generate or retrieve valid BibTeX entries for academic papers",
     backstory="""
-You are a bibliographic expert specialized in creating and managing BibTeX
-entries. You know how to fetch BibTeX from various sources (DOI, arXiv) and
+You are a bibliographic expert specialized in creating and managing BibTeX 
+entries. You know how to fetch BibTeX from various sources (DOI, arXiv) and 
 can manually construct valid entries when needed.
 
 You ALWAYS ensure BibTeX entries follow proper formatting with:
@@ -120,14 +122,15 @@ You ALWAYS ensure BibTeX entries follow proper formatting with:
     allow_delegation=False
 )
 
+# === TASK BUILDER ===
 
 def create_bibtex_task(paper_metadata: dict) -> Task:
     """
     Create a task for generating BibTeX from paper metadata.
-
+    
     Args:
         paper_metadata: Dict with paper information
-
+        
     Returns:
         CrewAI Task object
     """
@@ -144,7 +147,7 @@ STEPS:
 1. Check if the metadata already contains a valid BibTeX entry
    - If yes, validate it using 'validate_bibtex' tool
    - If valid, return it
-
+   
 2. If no BibTeX or invalid:
    - If DOI is available, use 'fetch_bibtex_from_doi'
    - If arXiv ID is available, use 'fetch_bibtex_from_arxiv'

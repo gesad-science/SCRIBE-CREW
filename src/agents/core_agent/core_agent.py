@@ -10,14 +10,18 @@ os.environ["OTEL_SDK_DISABLED"] = "true"
 
 from crewai import Agent, Task, Crew, Process
 from src.entities.config import SystemConfig
-from src.agents.core_agent.tools import (
+from src.agents.core_agent.tools import (delegate_to_bibtex_generator,
+                                         delegate_to_governance_execution,
                                          delegate_to_governance_plan,
+                                         delegate_to_reference_finder,
+                                         delegate_to_validator,
                                          save_plan,
+                                         retrieve_agents,
+                                         get_tools,
                                          save_pdf_to_system_memory,
+                                         delegate_to_rag_agent,
                                          get_similar_plans,
-                                         get_agents,
-                                         call_agent,
-                                         get_agent_names)
+                                         delegate_to_download_agent)
 
 
 from crewai import Agent
@@ -59,6 +63,7 @@ class CoreAgent:
         return list(self.conversation_window)
 
     def _setup_agent(self):
+
         self.core_orchestrator_agent = Agent(
             role="Core Orchestrator Agent",
             goal="Coordinate specialized agents to fulfill academic reference requests",
@@ -71,7 +76,19 @@ class CoreAgent:
         You can only act through the tools provided.
         You can only return the final output after executing all the necessary tasks in order.
         """,
-            tools=[delegate_to_governance_plan, save_plan, save_pdf_to_system_memory, get_similar_plans, get_agents, call_agent, get_agent_names],
+            tools=[
+                delegate_to_reference_finder,
+                delegate_to_bibtex_generator,
+                delegate_to_validator,
+                delegate_to_governance_execution,
+                delegate_to_governance_plan,
+                save_plan,
+                retrieve_agents,
+                get_tools,
+                save_pdf_to_system_memory,
+                delegate_to_rag_agent,
+                get_similar_plans
+            ],
             llm=self.llm,
             max_iter=self.max_iterations,
             verbose=self.verbose,
@@ -84,7 +101,7 @@ class CoreAgent:
             You are an orchestrator agent that MUST follow these instructions EXACTLY IN ORDER:
 
             1. You should check if the user's request contains any directory paths that they want to use in the request. If it does, use tool 'save_pdf_to_system_memory', passing the path to save it in the system memory.
-            2. Retrieve which agents you have available to include in the plan using the tool: 'get_agents' (you can only include agents that you have available in the plan).
+            2. Retrieve which agents you have available to include in the plan using the tool: 'retrieve_agents' (you can only include agents that you have available in the plan).
             3. Create an execution plan in valid JSON format for the user request.
             4. You MUST use the tool 'delegate_to_governance' to validate the plan JSON string.
             5. If the validation fails, revise the plan and repeat step 3 until approved.
@@ -124,7 +141,7 @@ class CoreAgent:
             """,
             expected_output="A validated and saved execution plan JSON",
             agent=self.core_orchestrator_agent,
-            tools=[get_agents, delegate_to_governance_plan, save_plan],
+            tools=[retrieve_agents, delegate_to_governance_plan, save_plan],
         )
 
     def _execution_task(self):
@@ -133,17 +150,18 @@ class CoreAgent:
             Execute the previously validated execution plan step by step.
 
             Steps:
-            1. Get your availiable agents with the tool 'get_agent_names'
-            2. Use tool 'call_agent' passing the name of the agents that you retrieve in the step 1 to execute each action strictly in order.
-            3. Collect the outputs of all agents.
-            4. Produce the final response to the user using only the collected outputs.
+            1. Get your availiable tools with the tool 'get_tools'
+            2. Use delegation tools that you retrieve in the step 1 to execute each action strictly in order.
+            3. Use the appropriate tool for each responsible agent in the plan.
+            4. Collect the outputs of all tools.
+            5. Produce the final response to the user using only the collected outputs.
 
             Rules:
             - You MUST strictly follow the order of the steps in the plan.
-            - Return ONLY after call all the necessary agents and collect their outputs.
+            - Return ONLY after call all the necessary tools and collect their outputs.
             - You CAN'T RETURN before executing all the steps in the plan, even if some of them fail, as long as they are not critical to the execution of the other steps. In case of a failed step, you should collect the error message and include it in the final answer to the user, so they are aware of what went wrong.
-            - Pass the necessary information as context to each agent.
-            - Your final objective is use the plan to respond to user request.
+            - Pass the necessary information as context to each tool.
+            - Your final objective is use the plan to respond to user request:
             - Do NOT modify the plan.
             - Do NOT revalidate the plan.
             - Do NOT add extra information beyond what the user requested.
@@ -153,7 +171,16 @@ class CoreAgent:
             """,
             expected_output="The final answer to the user.",
             agent=self.core_orchestrator_agent,
-            tools=[get_agent_names, call_agent],
+            tools=[
+                get_tools,
+                delegate_to_reference_finder,
+                delegate_to_bibtex_generator,
+                delegate_to_validator,
+                delegate_to_governance_execution,
+                delegate_to_rag_agent,
+                delegate_to_download_agent,
+                save_pdf_to_system_memory
+            ],
         )
 
     def _pre_plan_task(self):
@@ -258,7 +285,7 @@ class CoreAgent:
         }
         )
 
-        crew.reset_memories(command_type='all')
+
         self.crew=crew
 
     def orchestrate(self, user_input:str):

@@ -9,6 +9,7 @@ from src.utils import normalize_json
 from src.entities.config import SystemConfig
 config = SystemConfig()
 
+# === TOOLS ===
 
 @tool
 def search_paper_by_title(title: str) -> str:
@@ -103,6 +104,7 @@ def guess_title_tool(reference_text: str) -> str:
 
     return title
 
+# === AGENT ===
 
 reference_finder_agent = Agent(
     role="Academic Reference Finder",
@@ -122,6 +124,7 @@ by your tools. If a paper cannot be found, you report that clearly. And you only
     allow_delegation=False
 )
 
+# === TASK BUILDER ===
 
 def create_reference_task(reference_text: str) -> Task:
     """
