@@ -96,7 +96,8 @@ def download_pdf(pdf_url: str) -> str:
 
         return json.dumps({
             "status": "downloaded",
-            "file_path": filepath
+            "file_path": filepath,
+            "details": "Use save pdf to system memory to make it available for retrieval and QA"
         })
 
     except Exception as e:

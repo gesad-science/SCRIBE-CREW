@@ -155,7 +155,7 @@ class CoreAgent:
             """,
             expected_output="The final answer to the user.",
             agent=self.core_orchestrator_agent,
-            tools=[get_agent_names, call_agent],
+            tools=[get_agent_names, call_agent, save_pdf_to_system_memory],
         )
 
     def _pre_plan_task(self):
