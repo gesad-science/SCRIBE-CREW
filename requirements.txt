@@ -1,5 +1,5 @@
 # Core
-crewai>=1.6.1
+crewai==1.7.2
 crewai-chat-ui>=0.1.2
 crewai-tools>=1.7.2
 langchain>=0.1.0

@@ -11,7 +11,7 @@ services:
       - "8000:8000"
     volumes:
       - ./src:/app/src
-      #- ./pdfs:/app/pdfs
+      - ./pdfs:/app/pdfs
       - ./plans:/app/plans
     env_file:
       - .env

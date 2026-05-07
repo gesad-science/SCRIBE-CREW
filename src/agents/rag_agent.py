@@ -104,7 +104,8 @@ def smart_retrieve_with_delimiter(query: str) -> str:
     if not system_docs:
         return json.dumps({
             "status": "not_found",
-            "chunks": []
+            "chunks": [],
+            "details": "Not found on system memory. Try to use the download agent to populate memory with paper content."
         })
 
 

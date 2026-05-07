@@ -83,7 +83,10 @@ Strictly grounded responses:
 - Only retrieved chunks are used
 - Returns cited excerpts
 
+This agent only returns information found in memory. If the question cannot be answered with the available memory, it will return 'not_found'. So make sure to populate the memory with relevant paper content using the download agent before asking questions.
+
 If no information is found, returns 'not_found'.
+Note: TO USE THIS AGENT, YOU MUST FIRST POPULATE THE MEMORY WITH PAPER CONTENT. FOR THAT YOU CAN USE THE DOWNLOAD AGENT.
 """,
     tags=["rag", "memory", "qa", "papers"],
     examples=[

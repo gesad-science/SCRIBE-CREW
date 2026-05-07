@@ -6,6 +6,8 @@ from src.utils import guess_title_from_reference, extract_doi, extract_arxiv_id
 import json
 from src.utils import normalize_json
 from typing import Type
+import os
+os.environ["OPENAI_LOG"] = "debug"
 
 from src.entities.config import SystemConfig
 config = SystemConfig()
@@ -23,6 +25,7 @@ class SearchPaperByTitleTool(BaseTool):
 
     def _run(self, title:str) -> str:
         return search_paper_by_title(title)
+
 
 def search_paper_by_title(title: str) -> str:
     """
@@ -86,7 +89,7 @@ class ExtractIdentifiersInput(BaseModel):
 class ExtractIdentifiersTool(BaseTool):
     name:str = "extract_identifiers_from_reference"
     description:str = "Extract DOI and arXiv ID from a reference string. This tool uses regex patterns to identify and extract these identifiers from the reference text."
-    args_schema: type[BaseModel] = ExtractIdentifiersInput
+    args_schema: Type[BaseModel] = ExtractIdentifiersInput
 
     def _run(self, reference_text:str) -> str:
         return extract_identifiers_from_reference(reference_text)
@@ -125,7 +128,7 @@ class GuessTitleInput(BaseModel):
 class GuessTitleTool(BaseTool):
     name:str = "guess_title_tool"
     description:str = "Estimate the paper title from a reference string. Usually the title is the longest sentence in the reference."
-    args_schema: type[BaseModel] = GuessTitleInput
+    args_schema: Type[BaseModel] = GuessTitleInput
 
     def _run(self, reference_text:str) -> str:
         return guess_title_tool(reference_text)

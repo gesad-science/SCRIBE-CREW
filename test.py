@@ -1,6 +1,6 @@
 from src.agents.core_agent.core_agent import CoreAgent
 
-from tests.template_test import run_tests_and_save_results
+#from tests.template_test import run_tests_and_save_results
 from src.entities.execution import Execution
 from src.agents.core_agent.execution_memory import ExecutionMemory
 from src.entities.plan_watcher import PlanWatcher
