@@ -124,6 +124,8 @@ Goal:
 - return a clear final answer based only on executed outputs
 - optionally generate a Markdown table when comparison/summary fits
 
+This
+
 ## Core Agent input and output
 
 Input:

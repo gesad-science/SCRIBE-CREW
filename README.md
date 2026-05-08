@@ -68,34 +68,7 @@ API_KEY=your_key_here
 
 ## 🏗️ Multi-Agent Architecture
 
-## 🏗️ Multi-Agent Architecture
-
-### Agent Hierarchy
-
-```
-                    ┌─────────────────────┐
-                    │  Core Orchestrator  │
-                    │    (Main Agent)     │
-                    └──────────┬──────────┘
-                               │
-                   ┌───────────┴───────────┐
-                   │     Delegates to      │
-                   └───────────┬───────────┘
-                               │
-         ┌─────────────────────┼───────────────────────────┐
-         │                     │                           │
-         ▼                     ▼                           ▼
-┌─────────────────┐   ┌─────────────────┐         ┌─────────────────┐
-│   Reference     │   │     BibTeX      │         │   Validator     │
-│  Finder Agent   │   │ Generator Agent │         │     Agent       │
-└─────────────────┘   └─────────────────┘         └─────────────────┘
-         │                     │                           │
-         ▼                     ▼                           ▼
-┌─────────────────┐   ┌─────────────────┐         ┌─────────────────┐
-│  Download Agent │   │    RAG Agent    │         │ Governance Agent│
-│ (PDF retrieval) │   │ (Qdrant-backed) │         │ (plan/policy QC)│
-└─────────────────┘   └─────────────────┘         └─────────────────┘
-```
+![ARCHITECTURE](docs/architecture.png)
 
 ### Specialized Agents
 
@@ -297,9 +270,6 @@ curl -sS -X POST "http://localhost:8000/execute" \
 
 | Model | RAM | Speed | Accuracy |
 |-------|-----|-------|----------|
-| llama3.2:3b | 2GB | Fast | Good |
-| llama3.1:8b | 5GB | Medium | Better |
-| mistral:7b | 4GB | Medium | Good |
 | gpt-4.1-mini | Cloud | Fast | Good |
 | gpt-5 | Cloud | Slower | Best |
 | qwen3:14b+ | 10GB+ | Medium | Good |
