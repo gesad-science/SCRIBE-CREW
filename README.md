@@ -4,6 +4,70 @@
 
 A multi-agent system for processing academic references using specialized AI agents coordinated by a core orchestrator. This architecture follows the LLM-native style and demonstrates agent collaboration, task delegation, and hierarchical planning in an academic context.
 
+## 📚 Documentation (main pipeline)
+
+This documentation focuses **only on the main pipeline** (Docker Compose + supervisord + A2A + Control Plane + Core Agent + Frontend).
+
+- **Main pipeline (end-to-end)**: [Main Pipeline](docs/MAIN_PIPELINE.md)
+- **A2A agents (supervisord + compose) and capabilities**: [Agents](docs/AGENTS_A2A.md)
+- **Core Agent (orchestrator)**: [Core Agent](docs/CORE_AGENT.md)
+- **Control Plane (discovery + routing)**: [Control Plane](docs/CONTROL_PLANE.md)
+- **Frontend (chat) + API integration**: [FrontEnd](docs/FRONTEND.md)
+- **Execution examples (high-level logs)**: [Execution Examples](docs/EXECUTION_EXAMPLES.md)
+
+## 🚀 Quickstart (Docker Compose)
+
+Prerequisites:
+
+- Docker + Docker Compose
+- An `.env` file with at least `API_KEY` set (see below)
+
+Start everything:
+
+```bash
+docker compose -f docker-compose.yaml up --build
+```
+
+Open:
+
+- Frontend: `http://localhost:8080`
+- API: `http://localhost:8000`
+
+## 🔌 Main API endpoints (product)
+
+The main API is implemented in `main.py` and exposes:
+
+- `POST /execute`
+  - JSON: `{ "message": "..." }`
+- `POST /execute-with-pdf`
+  - multipart form:
+    - `user_input` (text)
+    - `pdf` (PDF file)
+
+## 🧩 Runtime architecture (what actually runs)
+
+Docker Compose (`docker-compose.yaml`) starts:
+
+- **`api`** (`scribe-api`):
+  - FastAPI app at `:8000` (`main.py`)
+  - **A2A agents** started by `supervisord.conf` on ports `9994–9998`
+- **`control_plane`** (`scribe-control-plane`): discovery + routing at `:7000` (internal network)
+- **`qdrant`** (`scribe-qdrant`): vector store at `:6333`
+- **`ollama`** (`scribe-ollama`): model runtime at `:11434` (pulls `nomic-embed-text` on startup)
+- **`front`** (`scribe-front`): Vite dev server (default `:8080`)
+
+## 🔐 Environment variables
+
+The API loads `.env` and maps `API_KEY` into `OPENAI_API_KEY` in `main.py`.
+
+Minimum `.env` example:
+
+```bash
+API_KEY=your_key_here
+```
+
+## 🏗️ Multi-Agent Architecture
+
 ## 🏗️ Multi-Agent Architecture
 
 ### Agent Hierarchy
@@ -18,21 +82,19 @@ A multi-agent system for processing academic references using specialized AI age
                    │     Delegates to      │
                    └───────────┬───────────┘
                                │
-         ┌─────────────────────┼─────────────────────┐
-         │                     │                     │
-         ▼                     ▼                     ▼
-┌─────────────────┐   ┌─────────────────┐   ┌─────────────────┐
-│   Reference     │   │     BibTeX      │   │   Validator     │
-│  Finder Agent   │   │ Generator Agent │   │     Agent       │
-└─────────────────┘   └─────────────────┘   └─────────────────┘
-         │                     │                     │
-         └─────────────────────┴─────────────────────┘
-                               │
-                               ▼
-                    ┌─────────────────────┐
-                    │  Governance Agent   │
-                    │  (Policy Enforcer)  │
-                    └─────────────────────┘
+         ┌─────────────────────┼───────────────────────────┐
+         │                     │                           │
+         ▼                     ▼                           ▼
+┌─────────────────┐   ┌─────────────────┐         ┌─────────────────┐
+│   Reference     │   │     BibTeX      │         │   Validator     │
+│  Finder Agent   │   │ Generator Agent │         │     Agent       │
+└─────────────────┘   └─────────────────┘         └─────────────────┘
+         │                     │                           │
+         ▼                     ▼                           ▼
+┌─────────────────┐   ┌─────────────────┐         ┌─────────────────┐
+│  Download Agent │   │    RAG Agent    │         │ Governance Agent│
+│ (PDF retrieval) │   │ (Qdrant-backed) │         │ (plan/policy QC)│
+└─────────────────┘   └─────────────────┘         └─────────────────┘
 ```
 
 ### Specialized Agents
@@ -99,6 +161,27 @@ A multi-agent system for processing academic references using specialized AI age
   - `check_bibtex_validity`
   - `cross_check_metadata_bibtex`
 
+##### 4. **Paper Downloader Agent** 📥
+- **Role**: PDF retrieval specialist
+- **Responsibilities**:
+  - Resolve DOI / arXiv IDs and locate legitimate PDF sources
+  - Prefer open-access locations (when available)
+  - Download PDFs to the local `pdfs/` directory so they can be indexed into memory
+- **Tools**:
+  - `query_crossref_by_doi`
+  - `query_unpaywall`
+  - `query_arxiv`
+  - `download_pdf`
+
+##### 5. **Hierarchical RAG Agent** 🧠
+- **Role**: Grounded question answering over indexed paper content
+- **Responsibilities**:
+  - Retrieve relevant chunks from Qdrant-backed memories
+  - Answer strictly from retrieved content (no hallucinations)
+  - Cache system-memory results into private memory for faster follow-ups
+- **Tools**:
+  - `smart_retrieve_with_delimiter`
+
 ## 🔄 Workflow
 
 ### Step-by-Step Process
@@ -139,43 +222,23 @@ Core Agent:
 
 ## 🚀 Installation
 
-```bash
-# 1. Clone repository
-git clone <repository-url>
-cd SCRIBE-CREW
+Recommended: use Docker Compose (see **Quickstart** above).
 
-# 2. Create virtual environment
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
-# or
-venv\Scripts\activate  # Windows
-
-# Also can use anaconda
-
-# 3. Install dependencies
-pip install -r requirements.txt
-
-# 4. (If using an external API) Create .env file (IMPORTANT!)
-cat > .env << EOF
-API_KEY = # your key here
-EOF
-
-# 5. (If using ollama) Setup Ollama
-# Download from: https://ollama.ai
-ollama pull llama3.2:3b
-
-# 6. Start Ollama
-ollama serve
-```
+For local Python development (without Compose), you are responsible for running dependencies (Qdrant, Ollama) yourself.
 
 ## 📖 Usage
 
-### Command Line
+### Via Frontend
+
+- Open `http://localhost:8080`
+- Start a chat and optionally attach a PDF
+
+### Via API (curl)
 
 ```bash
-# Single reference
-python -m test.py
-### and set your input.
+curl -sS -X POST "http://localhost:8000/execute" \
+  -H "Content-Type: application/json" \
+  -d '{"message":"Find metadata and BibTeX for: Attention is All You Need"}'
 ```
 
 ### Example Output
@@ -202,9 +265,9 @@ python -m test.py
 }
 ```
 
-## ⚙️ Configuration (`config.py`)
+## ⚙️ Configuration (`src/entities/config.py`)
 
-### LLM Settings 
+### LLM Settings
 
 `USE_OLLAMA` - enables or disables the use of the Ollama backend for model execution.
 
@@ -237,13 +300,49 @@ python -m test.py
 | llama3.2:3b | 2GB | Fast | Good |
 | llama3.1:8b | 5GB | Medium | Better |
 | mistral:7b | 4GB | Medium | Good |
+| gpt-4.1-mini | Cloud | Fast | Good |
+| gpt-5 | Cloud | Slower | Best |
+| qwen3:14b+ | 10GB+ | Medium | Good |
 
 
 ## 📝 Extending the System
 
 ### Adding a New Agent
 
---- not implemented yet ---
+This project uses **A2A + Control Plane** so agents can be **fully decoupled**:
+
+- an agent can run in **any language** and with **any framework**
+- as long as it exposes the **A2A HTTP interface** (Agent Card + JSON-RPC `message/send`)
+- and listens on a port in the Control Plane scan range (**9000–9999**)
+
+#### Requirements (A2A contract)
+
+Your agent service must:
+
+1. Serve an Agent Card at:
+   - `GET /.well-known/agent-card.json`
+2. Accept JSON-RPC calls via HTTP at the service base URL:
+   - `method`: `message/send`
+   - read the user text from `params.message.parts[0].text`
+3. Run on a port between **9000 and 9999**
+
+#### How discovery works (Control Plane)
+
+The Control Plane scans the **9000–9999** range and registers any service that responds with an Agent Card. Once registered, the Core Agent can call it **by name** via the Control Plane, without knowing its URL/port.
+
+#### Example steps (Docker Compose / supervisord)
+
+1. Implement your A2A server (any language/stack).
+2. Pick a port in `9000–9999` that is not in use (e.g. `9010`).
+3. Run it somewhere reachable by the Control Plane:
+   - inside the Compose network (recommended), or
+   - externally, as long as the Control Plane can reach it by host + port.
+4. Ensure `/.well-known/agent-card.json` returns your agent metadata + skills.
+5. Restart the Control Plane (or call `POST /refresh`) so it re-scans and discovers the new agent.
+
+#### Execution logs (high-level)
+
+See `docs/EXECUTION_EXAMPLES.md` for high-level execution logs and traces of the main pipeline.
 
 
 ## 📚 Dependencies
@@ -255,7 +354,7 @@ python -m test.py
 - **beautifulsoup4**: HTML parsing
 - **bibtexparser**: BibTeX parser
 
-Verify the file `requirements.txt` to know more
+See `requirements.txt` for the full dependency list.
 
 ## 📜 License
 
