@@ -1,282 +1,135 @@
-# SCRIBE System
+# SCRIBE (alternate / monolithic variant)
 
-## 🎯 Research Objective
+> **Important notice**: this repository is **an alternative SCRIBE variant**.  
+> The **mainline version** lives on the **`main`** branch.  
+> This variant is **more monolithic** and **does not include A2A**.
 
-A multi-agent system for processing academic references using specialized AI agents coordinated by a core orchestrator. This architecture follows the LLM-native style and demonstrates agent collaboration, task delegation, and hierarchical planning in an academic context.
+## Overview
 
-## 🏗️ Multi-Agent Architecture
+**SCRIBE** is a system to **automate research workflows and academic reference handling** using a multi-agent architecture (coordinated by a core orchestrator), including:
 
-### Agent Hierarchy
+- A **Python API** (FastAPI) to run executions and receive requests
+- A **Web UI** (Vite + React + TypeScript + shadcn/ui) for browser interaction
+- **RAG / vector storage** via **Qdrant** (optional, depending on configuration)
+- Support for **remote LLMs** (via `litellm`) and/or **Ollama** (when enabled)
 
-```
-                    ┌─────────────────────┐
-                    │  Core Orchestrator  │
-                    │    (Main Agent)     │
-                    └──────────┬──────────┘
-                               │
-                   ┌───────────┴───────────┐
-                   │     Delegates to      │
-                   └───────────┬───────────┘
-                               │
-         ┌─────────────────────┼─────────────────────┐
-         │                     │                     │
-         ▼                     ▼                     ▼
-┌─────────────────┐   ┌─────────────────┐   ┌─────────────────┐
-│   Reference     │   │     BibTeX      │   │   Validator     │
-│  Finder Agent   │   │ Generator Agent │   │     Agent       │
-└─────────────────┘   └─────────────────┘   └─────────────────┘
-         │                     │                     │
-         └─────────────────────┴─────────────────────┘
-                               │
-                               ▼
-                    ┌─────────────────────┐
-                    │  Governance Agent   │
-                    │  (Policy Enforcer)  │
-                    └─────────────────────┘
-```
+## Components
 
-### Specialized Agents
+- **Backend (API)**: `main.py` + `src/`
+  - `POST /execute` receives a message and triggers an execution.
+  - `POST /execute-with-pdf` receives `user_input` + a `pdf` upload and runs the execution including the file path in the prompt.
+- **Frontend (UI)**: `front/`
+- **Vector DB / storage**: Qdrant (via `docker-compose.yaml`)
+- **Local models**: Ollama (via `docker-compose.yaml`, when enabled/configured)
 
-#### Native agents
+## Requirements
 
-##### **Core Orchestrator Agent** 🎯
-- **Role**: Main coordinator
-- **Responsibilities**:
-  - Receives user requests
-  - Creates execution plans
-  - Delegates tasks to specialized agents
-  - Consolidates results
-  - Manages workflow
-- **Tools**: Delegation functions for each specialized agent
+- **Python 3.11+**
+- **Node.js 18+** (for the UI)
+- (Optional) **Docker + Docker Compose** (to run the full stack with Qdrant/Ollama/UI)
 
-##### **Governance Agent** 🛡️
-- **Role**: Policy enforcer
-- **Responsibilities**:
-  - Validate execution plans
-  - Detect PII in data
-  - Ensure policy compliance
-  - Check plan efficiency
-- **Tools**:
-  - `get_system_policies`
-  - `validate_plan_structure`
-  - `detect_pii`
-  - `check_plan_efficiency`
+## Configuration
 
-#### Domain agents
+### Environment variables
 
-##### 1. **Reference Finder Agent** 🔍
-- **Role**: Paper search specialist
-- **Responsibilities**:
-  - Extract identifiers (DOI, arXiv) from references
-  - Search Semantic Scholar API
-  - Extract paper metadata
-- **Tools**:
-  - `search_paper_by_title`
-  - `extract_identifiers_from_reference`
-  - `guess_title_tool`
+This project uses `.env`. The backend reads:
 
-##### 2. **BibTeX Generator Agent** 📝
-- **Role**: Bibliography entry creator
-- **Responsibilities**:
-  - Fetch BibTeX from DOI/arXiv
-  - Construct BibTeX manually when needed
-  - Validate BibTeX format
-- **Tools**:
-  - `fetch_bibtex_from_doi`
-  - `fetch_bibtex_from_arxiv`
-  - `create_bibtex_manually`
-  - `validate_bibtex`
+- **`API_KEY`**: your provider/LLM key (mapped internally to `OPENAI_API_KEY` at runtime)
 
-##### 3. **Reference Validator Agent** ✅
-- **Role**: Quality control specialist
-- **Responsibilities**:
-  - Check metadata completeness
-  - Validate BibTeX entries
-  - Cross-check consistency
-  - Provide quality reports
-- **Tools**:
-  - `check_metadata_completeness`
-  - `check_bibtex_validity`
-  - `cross_check_metadata_bibtex`
+Example (create a `.env` file at the repo root):
 
-## 🔄 Workflow
-
-### Step-by-Step Process
-
-```
-1. User submits a request
-         ↓
-2. Core Agent receives request
-         ↓
-3. Core creates execution plan
-         ↓
-4. Governance validates plan
-         ↓
-5. Core executes plan:
-         ↓
-6. Core consolidates results
-         ↓
-7. User receives final output
+```env
+API_KEY=your_key_here
 ```
 
-### Example Execution Flow
+### Runtime config
 
-For input: " Give more information about Smith, J. (2020). AI Research. Conference."
+`config.yaml` controls settings such as:
 
-```
-Core Agent:
-  ├─ Creates Plan: [find_reference, generate_bibtex, validate]
-  ├─ Delegates to Governance: validate plan
-  │   └─ Governance: ✓ Plan approved
-  ├─ Delegates to Reference Finder: search "Smith AI Research 2020"
-  │   └─ Reference Finder: ✓ Found paper metadata
-  ├─ Delegates to BibTeX Generator: create BibTeX
-  │   └─ BibTeX Generator: ✓ Generated BibTeX entry
-  ├─ Delegates to Validator: validate data
-  │   └─ Validator: ✓ Quality check passed
-  └─ Returns: Complete reference with BibTeX
-```
+- `USE_OLLAMA` (enable/disable Ollama usage)
+- `MODEL`
+- `TIMEOUT`, `TEMPERATURE`, `MAX_RETRIES`, `MAX_ITERATIONS`
+- `QDRANT` and `OLLAMA` hosts
 
-## 🚀 Installation
+## Running the project
+
+### Option A) Docker Compose (recommended)
+
+From the repository root:
 
 ```bash
-# 1. Clone repository
-git clone <repository-url>
-cd SCRIBE-CREW
+docker compose up --build
+```
 
-# 2. Create virtual environment
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
-# or
-venv\Scripts\activate  # Windows
+Default services:
 
-# Also can use anaconda
+- **API**: `http://localhost:8000`
+- **Qdrant**: `http://localhost:6333`
+- **UI**: `http://localhost:5173` (or `http://localhost:8080`, depending on the container)
 
-# 3. Install dependencies
+### Option B) Local run (no Docker)
+
+#### Backend
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
-
-# 4. (If using an external API) Create .env file (IMPORTANT!)
-cat > .env << EOF
-API_KEY = # your key here
-EOF
-
-# 5. (If using ollama) Setup Ollama
-# Download from: https://ollama.ai
-ollama pull llama3.2:3b
-
-# 6. Start Ollama
-ollama serve
+python main.py
 ```
 
-## 📖 Usage
+API at `http://localhost:8000`.
 
-### Command Line
+#### Frontend
 
 ```bash
-# Single reference
-python -m test.py
-### and set your input.
+cd front
+npm install
+npm run dev
 ```
 
-### Example Output
+UI at `http://localhost:5173`.
 
-```json
-{
-  "total_references": 2,
-  "successful": 2,
-  "failed": 0,
-  "results": [
-    {
-      "reference": "Vaswani, A., Shazeer, N...",
-      "status": "success",
-      "metadata": {
-        "title": "Attention is All You Need",
-        "authors": ["Ashish Vaswani", "Noam Shazeer", ...],
-        "year": 2017,
-        "url": "https://..."
-      },
-      "bibtex": "@inproceedings{vaswani2017attention,...}"
-    },
-    ...
-  ]
-}
+## Using the API
+
+### Execute a request
+
+```bash
+curl -X POST "http://localhost:8000/execute" \
+  -H "Content-Type: application/json" \
+  -d '{"message":"Describe the goal and generate a plan to review my paper references."}'
 ```
 
-## ⚙️ Configuration (`config.py`)
+### Execute with a PDF (upload)
 
-### LLM Settings 
+```bash
+curl -X POST "http://localhost:8000/execute-with-pdf" \
+  -F "user_input=Extract the references and generate a BibTeX." \
+  -F "pdf=@./pdfs/your_file.pdf"
+```
 
-`USE_OLLAMA` - enables or disables the use of the Ollama backend for model execution.
+## Repository structure
 
-`MODEL` - specifies the language model to be used by the system.
+- `main.py`: FastAPI app (endpoints and bootstrap)
+- `src/`: agents, entities and utilities
+- `front/`: React UI (Vite + TS + shadcn/ui)
+- `tests/`: tests and execution helpers
+- `pdfs/`: uploaded/stored PDFs
+- `plans/`: plan outputs (depending on configuration)
+- `docker-compose.yaml`: stack (API + Qdrant + Ollama + UI)
 
-`TIMEOUT` - defines the maximum time (in seconds) allowed for a single model request before it is aborted.
+## Tests
 
-`TEMPERATURE` - controls the randomness of the model’s responses. Lower values make outputs more deterministic, while higher values increase creativity.
+Frontend:
 
-`MAX_RETRIES` - sets how many times the system will retry a failed model request.
+```bash
+cd front
+npm test
+```
 
-`VERBOSE` - enables detailed logging, useful for debugging and understanding internal execution flow.
+(If there are backend tests, they live under `tests/` and may depend on external services depending on the workflow.)
 
-### Core Configuration
+## License
 
-`CORE_CONFIG` - groups settings related to the internal agent system.
+See `LICENSE`.
 
-`AVALIABLE_AGENTS` - defines which agents are enabled and can participate in the execution pipeline. The order may matter depending on the orchestration logic.
-
-`PLAN_OUTPUT` - defines the format or style of the generated plans produced by the planning agent.
-
-### Governance Configuration
-
-`POLICIES` - the system policies that governance agent will use to validate information.
-
-### Model Recommendations
-
-| Model | RAM | Speed | Accuracy |
-|-------|-----|-------|----------|
-| llama3.2:3b | 2GB | Fast | Good |
-| llama3.1:8b | 5GB | Medium | Better |
-| mistral:7b | 4GB | Medium | Good |
-
-
-## 📝 Extending the System
-
-### Adding a New Agent
-
---- not implemented yet ---
-
-
-## 📚 Dependencies
-
-- **crewai**: Multi-agent framework
-- **litellm**: LLM interface
-- **requests**: HTTP client
-- **doi2bib3**: DOI to BibTeX converter
-- **beautifulsoup4**: HTML parsing
-- **bibtexparser**: BibTeX parser
-
-Verify the file `requirements.txt` to know more
-
-## 📜 License
-
-MIT License - Free for research and educational use
-
-## 🤝 Contributing
-
-This is a research project. Contributions welcome:
-- New specialized agents
-- Improved tools
-- Better governance policies
-- Performance optimizations
-
-## 📞 Support
-
-For issues or questions about the multi-agent architecture:
-1. Check verbose output (`VERBOSE=True`)
-2. Test individual agents
-3. Review agent logs
-4. Check Ollama connection
-
----
-
-**Note**: This system is designed for academic research on multi-agent coordination. The architecture prioritizes agent specialization and clear delegation patterns over raw performance.
